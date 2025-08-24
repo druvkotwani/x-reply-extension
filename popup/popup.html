@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Reply Extension</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1>AI Reply Extension</h1>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Ready</span>
+      </div>
+    </header>
+
+    <nav class="popup-nav">
+      <button class="nav-btn active" data-tab="settings">Settings</button>
+      <button class="nav-btn" data-tab="profiles">Tone Profiles</button>
+      <button class="nav-btn" data-tab="upload">Upload Data</button>
+    </nav>
+
+    <main class="popup-main">
+      <!-- Settings Tab -->
+      <div class="tab-content active" id="settings-tab">
+        <section class="settings-section">
+          <h3>AI Provider</h3>
+          <select id="ai-provider">
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="claude">Anthropic Claude</option>
+            <option value="gemini">Google Gemini</option>
+          </select>
+        </section>
+
+        <section class="settings-section">
+          <h3>AI API Key</h3>
+          <div class="input-group">
+            <input type="password" id="api-key" placeholder="Enter your AI API key">
+            <button id="save-api-key" class="btn-primary">Save</button>
+          </div>
+          <p class="help-text">Your API key is stored locally and never shared.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3>Supabase Configuration</h3>
+          <div class="input-group">
+            <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+            <input type="password" id="supabase-key" placeholder="Your Supabase anon key">
+            <button id="save-supabase" class="btn-primary">Save</button>
+          </div>
+          <p class="help-text">Required for storing your tone profile and reply history.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3>Default Tone</h3>
+          <select id="default-tone">
+            <option value="friendly">Friendly</option>
+            <option value="professional">Professional</option>
+            <option value="casual">Casual</option>
+            <option value="witty">Witty</option>
+            <option value="supportive">Supportive</option>
+          </select>
+        </section>
+
+        <section class="settings-section">
+          <h3>Reply Options</h3>
+          <label class="checkbox-label">
+            <input type="checkbox" id="auto-suggest" checked>
+            <span class="checkmark"></span>
+            Auto-suggest replies when viewing tweets
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="context-aware" checked>
+            <span class="checkmark"></span>
+            Use conversation context for better replies
+          </label>
+        </section>
+      </div>
+
+      <!-- Tone Profiles Tab -->
+      <div class="tab-content" id="profiles-tab">
+        <div class="profiles-header">
+          <h3>Saved Tone Profiles</h3>
+          <button id="create-profile" class="btn-secondary">+ New Profile</button>
+        </div>
+        
+        <div id="profiles-list" class="profiles-list">
+          <div class="empty-state">
+            <p>No tone profiles yet. Upload tweet data to create your first profile!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Data Tab -->
+      <div class="tab-content" id="upload-tab">
+        <section class="upload-section">
+          <h3>Upload Tweet Data</h3>
+          <p class="help-text">Upload a JSON file with tweets to analyze writing style and tone.</p>
+          
+          <div class="upload-area" id="upload-area">
+            <div class="upload-icon">📄</div>
+            <p>Drag & drop your tweet data file here</p>
+            <p class="upload-subtitle">or</p>
+            <button class="btn-secondary" id="file-select">Choose File</button>
+            <input type="file" id="file-input" accept=".json,.csv" hidden>
+          </div>
+
+          <div class="upload-progress" id="upload-progress" hidden>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <p class="progress-text">Processing tweets...</p>
+          </div>
+
+          <div class="upload-result" id="upload-result" hidden>
+            <h4>Analysis Complete!</h4>
+            <div class="analysis-summary"></div>
+            <button class="btn-primary" id="save-profile">Save as Tone Profile</button>
+          </div>
+        </section>
+
+        <section class="upload-section">
+          <h3>Manual Text Input</h3>
+          <p class="help-text">Or paste sample text to analyze writing style.</p>
+          
+          <textarea id="manual-text" placeholder="Paste sample tweets or text here..."></textarea>
+          <button class="btn-secondary" id="analyze-text">Analyze Text</button>
+        </section>
+      </div>
+    </main>
+
+    <footer class="popup-footer">
+      <div class="footer-links">
+        <a href="#" id="help-link">Help</a>
+        <a href="#" id="privacy-link">Privacy</a>
+      </div>
+      <div class="footer-version">v1.0.0</div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
