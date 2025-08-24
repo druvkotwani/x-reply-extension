@@ -1,9 +1,9 @@
-// Background service worker for AI Reply Extension
+// Background service worker for X Reply Extension
 
 // Extension installation/update handler
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('AI Reply Extension installed');
+    console.log('X Reply Extension installed');
     // Set default settings
     chrome.storage.sync.set({
       toneProfiles: [],
@@ -21,19 +21,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then(response => sendResponse({ success: true, data: response }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep message channel open for async response
-      
+
     case 'getToneProfile':
       getToneProfile()
         .then(profile => sendResponse({ success: true, data: profile }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
-      
+
     case 'saveReply':
       saveReplyToHistory(request.data)
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
-      
+
     case 'generateCustomReply':
       generateCustomReply(request.data)
         .then(response => sendResponse({ success: true, data: response }))
@@ -47,7 +47,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Generate AI replies using stored tone profile
 async function generateAIReplies(data) {
   const { originalTweet, toneProfile } = data;
-  
+
   try {
     // Get recent reply history for context
     let replyHistory = [];
@@ -56,7 +56,7 @@ async function generateAIReplies(data) {
     } catch (error) {
       console.log('Could not fetch reply history:', error);
     }
-    
+
     const replies = await callAIForReplies(originalTweet, toneProfile, replyHistory);
     return replies;
   } catch (error) {
@@ -71,13 +71,13 @@ async function callAIForReplies(originalTweet, toneProfile, replyHistory = []) {
   const result = await chrome.storage.sync.get(['apiKey', 'aiProvider']);
   const apiKey = result.apiKey;
   const provider = result.aiProvider || 'openai';
-  
+
   if (!apiKey) {
     throw new Error('API key not configured. Please add your API key in settings.');
   }
 
   const recentReplies = replyHistory.slice(-5);
-  
+
   const prompt = `Generate 3 unique, contextual replies to this tweet using the user's writing style.
 
 Original Tweet: "${originalTweet}"
@@ -150,10 +150,10 @@ async function callOpenAI(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.choices[0].message.content.trim();
-  
+
   // Extract JSON from markdown code blocks or other wrappers
   let jsonContent = content;
-  
+
   // Remove markdown code blocks
   if (content.includes('```json')) {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
@@ -169,20 +169,20 @@ async function callOpenAI(prompt, apiKey) {
     // Look for JSON array or object
     const arrayMatch = content.match(/\[\s*"[\s\S]*?\]/);
     const objectMatch = content.match(/\{\s*"[\s\S]*?\}/);
-    
+
     if (arrayMatch) {
       jsonContent = arrayMatch[0];
     } else if (objectMatch) {
       jsonContent = objectMatch[0];
     }
   }
-  
+
   try {
     return JSON.parse(jsonContent.trim());
   } catch (parseError) {
     console.error('Failed to parse OpenAI response:', content);
     console.error('Extracted content:', jsonContent);
-    
+
     // Return fallback replies
     return [
       "That's an interesting perspective!",
@@ -220,10 +220,10 @@ async function callClaude(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.content[0].text.trim();
-  
+
   // Extract JSON from markdown code blocks or other wrappers
   let jsonContent = content;
-  
+
   // Remove markdown code blocks
   if (content.includes('```json')) {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
@@ -239,20 +239,20 @@ async function callClaude(prompt, apiKey) {
     // Look for JSON array or object
     const arrayMatch = content.match(/\[\s*"[\s\S]*?\]/);
     const objectMatch = content.match(/\{\s*"[\s\S]*?\}/);
-    
+
     if (arrayMatch) {
       jsonContent = arrayMatch[0];
     } else if (objectMatch) {
       jsonContent = objectMatch[0];
     }
   }
-  
+
   try {
     return JSON.parse(jsonContent.trim());
   } catch (parseError) {
     console.error('Failed to parse Claude response:', content);
     console.error('Extracted content:', jsonContent);
-    
+
     // Return fallback replies
     return [
       "That's an interesting perspective!",
@@ -289,10 +289,10 @@ async function callGemini(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.candidates[0].content.parts[0].text.trim();
-  
+
   // Extract JSON from markdown code blocks or other wrappers
   let jsonContent = content;
-  
+
   // Remove markdown code blocks
   if (content.includes('```json')) {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
@@ -308,20 +308,20 @@ async function callGemini(prompt, apiKey) {
     // Look for JSON array or object
     const arrayMatch = content.match(/\[\s*"[\s\S]*?\]/);
     const objectMatch = content.match(/\{\s*"[\s\S]*?\}/);
-    
+
     if (arrayMatch) {
       jsonContent = arrayMatch[0];
     } else if (objectMatch) {
       jsonContent = objectMatch[0];
     }
   }
-  
+
   try {
     return JSON.parse(jsonContent.trim());
   } catch (parseError) {
     console.error('Failed to parse Gemini response:', content);
     console.error('Extracted content:', jsonContent);
-    
+
     // Return fallback replies
     return [
       "That's an interesting perspective!",
@@ -345,7 +345,7 @@ async function getToneProfile() {
 // Save reply to history for learning
 async function saveReplyToHistory(data) {
   const { originalTweet, userReply } = data;
-  
+
   try {
     await saveReplyToSupabase(originalTweet, userReply);
   } catch (error) {
@@ -357,7 +357,7 @@ async function saveReplyToHistory(data) {
 // Generate custom reply based on user instruction
 async function generateCustomReply(data) {
   const { originalTweet, customPrompt } = data;
-  
+
   try {
     // Get tone profile for context
     let toneProfile = null;
@@ -366,12 +366,12 @@ async function generateCustomReply(data) {
     } catch (error) {
       console.log('No tone profile available for custom reply');
     }
-    
+
     // Get API settings
     const result = await chrome.storage.sync.get(['apiKey', 'aiProvider']);
     const apiKey = result.apiKey;
     const provider = result.aiProvider || 'openai';
-    
+
     if (!apiKey) {
       throw new Error('API key not configured');
     }
@@ -404,7 +404,7 @@ Return ONLY the reply text, no quotes or extra formatting.`;
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
-    
+
     return customReply;
   } catch (error) {
     console.error('Custom reply generation failed:', error);
@@ -506,17 +506,17 @@ async function callGeminiForCustomReply(prompt, apiKey) {
 // Supabase functions
 async function getSupabaseConfig() {
   const result = await chrome.storage.sync.get(['supabaseUrl', 'supabaseKey', 'userId']);
-  
+
   if (!result.supabaseUrl || !result.supabaseKey) {
     throw new Error('Supabase credentials not configured');
   }
-  
+
   let userId = result.userId;
   if (!userId) {
     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     await chrome.storage.sync.set({ userId });
   }
-  
+
   return {
     url: result.supabaseUrl,
     key: result.supabaseKey,
@@ -526,7 +526,7 @@ async function getSupabaseConfig() {
 
 async function getToneProfileFromSupabase() {
   const { url, key, userId } = await getSupabaseConfig();
-  
+
   const response = await fetch(
     `${url}/rest/v1/tone_profiles?user_id=eq.${userId}&order=created_at.desc&limit=1`,
     {
@@ -548,7 +548,7 @@ async function getToneProfileFromSupabase() {
 async function getReplyHistoryFromSupabase(limit = 5) {
   try {
     const { url, key, userId } = await getSupabaseConfig();
-    
+
     const response = await fetch(
       `${url}/rest/v1/replies_history?user_id=eq.${userId}&order=timestamp.desc&limit=${limit}`,
       {
@@ -572,7 +572,7 @@ async function getReplyHistoryFromSupabase(limit = 5) {
 
 async function saveReplyToSupabase(originalTweet, userReply) {
   const { url, key, userId } = await getSupabaseConfig();
-  
+
   const response = await fetch(`${url}/rest/v1/replies_history`, {
     method: 'POST',
     headers: {

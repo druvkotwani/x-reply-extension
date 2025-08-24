@@ -124,6 +124,14 @@ function addAIReplyButton(replyButton) {
 }
 
 function showAIReplyPopup(replyButton) {
+  // Inject Google Fonts if not already present
+  if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap';
+    document.head.appendChild(fontLink);
+  }
+  
   // Remove any existing popup
   const existingPopup = document.querySelector('.ai-reply-popup');
   if (existingPopup) {

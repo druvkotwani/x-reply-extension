@@ -1,34 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "AI Reply Extension",
+  "name": "X Reply Extension",
   "version": "1.0.0",
   "description": "Generate contextually appropriate Twitter replies using AI tone analysis",
-  
-  "permissions": [
-    "storage",
-    "activeTab"
-  ],
-  
-  "host_permissions": [
-    "https://twitter.com/*",
-    "https://x.com/*"
-  ],
-  
+
+  "permissions": ["storage", "activeTab"],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com;"
+  },
+
+  "host_permissions": ["https://twitter.com/*", "https://x.com/*"],
+
   "content_scripts": [
     {
-      "matches": [
-        "https://twitter.com/*",
-        "https://x.com/*"
-      ],
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["content/twitter-detector.js"],
       "css": ["content/styles.css"],
       "run_at": "document_end"
     }
   ],
-  
+
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "AI Reply Extension",
+    "default_title": "X Reply Extension",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "32": "assets/icons/icon32.png",
@@ -36,18 +31,18 @@
       "128": "assets/icons/icon128.png"
     }
   },
-  
+
   "background": {
     "service_worker": "background/service-worker.js"
   },
-  
+
   "web_accessible_resources": [
     {
       "resources": ["assets/*", "popup/*", "utils/*"],
       "matches": ["https://twitter.com/*", "https://x.com/*"]
     }
   ],
-  
+
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",

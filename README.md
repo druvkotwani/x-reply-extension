@@ -1,4 +1,4 @@
-# AI Reply Extension for Twitter/X
+# X Reply Extension for Twitter/X
 
 A Chrome browser extension that generates contextually appropriate Twitter/X replies by analyzing your writing style and tone.
 

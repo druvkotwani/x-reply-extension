@@ -1,4 +1,4 @@
-// Popup JavaScript for AI Reply Extension
+// Popup JavaScript for X Reply Extension
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Test if chrome.storage.sync is available
@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showNotification('Extension storage not available. Please reload the extension.', 'error');
     return;
   }
-  
+
   // Test basic storage functionality
   try {
     await chrome.storage.sync.set({ test: 'working' });
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('Storage test error:', error);
   }
-  
+
   await initializePopup();
   setupEventListeners();
   loadSettings();
@@ -31,7 +31,7 @@ async function initializePopup() {
   // Check if we're on Twitter/X
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const isOnTwitter = tab.url.includes('twitter.com') || tab.url.includes('x.com');
-  
+
   updateStatusIndicator(isOnTwitter);
 }
 
@@ -39,7 +39,7 @@ async function initializePopup() {
 function updateStatusIndicator(isActive) {
   const statusDot = document.querySelector('.status-dot');
   const statusText = document.querySelector('.status-text');
-  
+
   if (isActive) {
     statusDot.style.background = '#10b981';
     statusText.textContent = 'Active on Twitter';
@@ -55,7 +55,7 @@ function setupEventListeners() {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
-  
+
   // Settings
   document.getElementById('save-api-key').addEventListener('click', saveApiKey);
   document.getElementById('save-supabase').addEventListener('click', saveSupabaseConfig);
@@ -63,33 +63,33 @@ function setupEventListeners() {
   document.getElementById('default-tone').addEventListener('change', saveSettings);
   document.getElementById('auto-suggest').addEventListener('change', saveSettings);
   document.getElementById('context-aware').addEventListener('change', saveSettings);
-  
+
   // Profiles
   document.getElementById('create-profile').addEventListener('click', createNewProfile);
-  
+
   // Upload
   const uploadArea = document.getElementById('upload-area');
   const fileInput = document.getElementById('file-input');
   const fileSelect = document.getElementById('file-select');
-  
+
   fileSelect.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', handleFileSelect);
-  
+
   uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
   });
-  
+
   uploadArea.addEventListener('dragleave', () => {
     uploadArea.classList.remove('dragover');
   });
-  
+
   uploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadArea.classList.remove('dragover');
     handleFileDrop(e);
   });
-  
+
   document.getElementById('analyze-text').addEventListener('click', analyzeManualText);
   document.getElementById('save-profile').addEventListener('click', saveAnalyzedProfile);
 }
@@ -100,7 +100,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
-  
+
   // Update tab content
   document.querySelectorAll('.tab-content').forEach(content => {
     content.classList.toggle('active', content.id === `${tabName}-tab`);
@@ -111,31 +111,31 @@ function switchTab(tabName) {
 async function saveApiKey() {
   const apiKeyInput = document.getElementById('api-key');
   console.log('API key input element:', apiKeyInput);
-  
+
   if (!apiKeyInput) {
     showNotification('API key input field not found', 'error');
     return;
   }
-  
+
   const apiKey = apiKeyInput.value.trim();
   console.log('API key value before save:', apiKey ? apiKey.substring(0, 10) + '...' : 'EMPTY');
-  
+
   if (!apiKey) {
     showNotification('Please enter an API key', 'error');
     return;
   }
-  
+
   try {
     // Save with explicit object structure
     const saveData = { apiKey: apiKey };
     console.log('Saving data:', { apiKey: apiKey.substring(0, 10) + '...' });
-    
+
     await chrome.storage.sync.set(saveData);
-    
+
     // Verify the save worked
     const verification = await chrome.storage.sync.get(['apiKey']);
     console.log('Verification after save:', verification);
-    
+
     if (verification.apiKey) {
       showNotification('API key saved successfully ✓', 'success');
       apiKeyInput.value = '';
@@ -152,14 +152,14 @@ async function saveApiKey() {
 async function saveSupabaseConfig() {
   const url = document.getElementById('supabase-url').value.trim();
   const key = document.getElementById('supabase-key').value.trim();
-  
+
   if (!url || !key) {
     showNotification('Please enter both Supabase URL and API key', 'error');
     return;
   }
-  
+
   try {
-    await chrome.storage.sync.set({ 
+    await chrome.storage.sync.set({
       supabaseUrl: url,
       supabaseKey: key
     });
@@ -179,7 +179,7 @@ async function saveSettings() {
     autoSuggest: document.getElementById('auto-suggest').checked,
     contextAware: document.getElementById('context-aware').checked
   };
-  
+
   try {
     await chrome.storage.sync.set(settings);
     showNotification('Settings saved', 'success');
@@ -194,12 +194,12 @@ async function loadSettings() {
     const result = await chrome.storage.sync.get([
       'aiProvider', 'defaultTone', 'autoSuggest', 'contextAware', 'apiKey'
     ]);
-    
+
     document.getElementById('ai-provider').value = result.aiProvider || 'openai';
     document.getElementById('default-tone').value = result.defaultTone || 'friendly';
     document.getElementById('auto-suggest').checked = result.autoSuggest !== false;
     document.getElementById('context-aware').checked = result.contextAware !== false;
-    
+
     // Show API key status
     console.log('Loading settings - API key status:', result.apiKey ? 'FOUND' : 'NOT FOUND');
     if (result.apiKey) {
@@ -215,7 +215,7 @@ async function loadToneProfiles() {
   try {
     // First try to get from Supabase
     let profiles = [];
-    
+
     try {
       const supabaseResult = await chrome.storage.sync.get(['supabaseUrl', 'supabaseKey', 'userId']);
       if (supabaseResult.supabaseUrl && supabaseResult.supabaseKey) {
@@ -232,13 +232,13 @@ async function loadToneProfiles() {
     } catch (supabaseError) {
       console.log('Could not load from Supabase, checking local storage');
     }
-    
+
     // Fallback to local storage
     if (profiles.length === 0) {
       const result = await chrome.storage.sync.get(['toneProfiles']);
       profiles = result.toneProfiles || [];
     }
-    
+
     displayToneProfiles(profiles);
   } catch (error) {
     console.error('Failed to load tone profiles:', error);
@@ -248,16 +248,16 @@ async function loadToneProfiles() {
 // Get tone profile from Supabase (for popup use)
 async function getToneProfileFromSupabase() {
   const result = await chrome.storage.sync.get(['supabaseUrl', 'supabaseKey', 'userId']);
-  
+
   if (!result.supabaseUrl || !result.supabaseKey) {
     throw new Error('Supabase not configured');
   }
-  
+
   let userId = result.userId;
   if (!userId) {
     throw new Error('No user ID found');
   }
-  
+
   const response = await fetch(
     `${result.supabaseUrl}/rest/v1/tone_profiles?user_id=eq.${userId}&order=created_at.desc&limit=1`,
     {
@@ -279,7 +279,7 @@ async function getToneProfileFromSupabase() {
 // Display tone profiles
 function displayToneProfiles(profiles) {
   const profilesList = document.getElementById('profiles-list');
-  
+
   if (profiles.length === 0) {
     profilesList.innerHTML = `
       <div class="empty-state">
@@ -288,11 +288,11 @@ function displayToneProfiles(profiles) {
     `;
     return;
   }
-  
+
   profilesList.innerHTML = profiles.map(profile => {
     const analysis = profile.analysis || {};
     const style = analysis.writingStyle || {};
-    
+
     return `
     <div class="profile-item" data-profile-id="${profile.id}">
       <div class="profile-name">${profile.name}</div>
@@ -311,7 +311,7 @@ function displayToneProfiles(profiles) {
     </div>
   `;
   }).join('');
-  
+
   // Add event listeners for profile actions
   profilesList.querySelectorAll('.profile-view').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -319,7 +319,7 @@ function displayToneProfiles(profiles) {
       viewProfileDetails(profileId, profiles);
     });
   });
-  
+
   profilesList.querySelectorAll('.profile-delete').forEach(btn => {
     btn.addEventListener('click', (e) => deleteProfile(e.target.dataset.profileId));
   });
@@ -345,14 +345,14 @@ function handleFileDrop(event) {
 async function processUploadedFile(file) {
   const progressContainer = document.getElementById('upload-progress');
   const resultContainer = document.getElementById('upload-result');
-  
+
   progressContainer.hidden = false;
   resultContainer.hidden = true;
-  
+
   try {
     const text = await readFileAsText(file);
     let tweets;
-    
+
     // Parse different file formats
     if (file.name.endsWith('.json')) {
       tweets = JSON.parse(text);
@@ -361,13 +361,13 @@ async function processUploadedFile(file) {
     } else {
       tweets = text.split('\n').filter(line => line.trim());
     }
-    
+
     // Analyze tweets with AI
     const analysis = await analyzeTweets(tweets);
-    
+
     // Show results
     displayAnalysisResults(analysis, tweets);
-    
+
   } catch (error) {
     showNotification('Failed to process file: ' + error.message, 'error');
   } finally {
@@ -389,7 +389,7 @@ function readFileAsText(file) {
 function parseCSV(text) {
   const lines = text.split('\n');
   const tweets = [];
-  
+
   for (let i = 1; i < lines.length; i++) { // Skip header
     const line = lines[i].trim();
     if (line) {
@@ -401,7 +401,7 @@ function parseCSV(text) {
       }
     }
   }
-  
+
   return tweets;
 }
 
@@ -412,7 +412,7 @@ async function analyzeTweets(tweets) {
     const result = await chrome.storage.sync.get(['apiKey', 'aiProvider']);
     const apiKey = result.apiKey;
     const provider = result.aiProvider || 'openai';
-    
+
     if (!apiKey) {
       throw new Error('API key not configured. Please add your API key in settings.');
     }
@@ -420,7 +420,7 @@ async function analyzeTweets(tweets) {
     const prompt = `Analyze these ${tweets.length} tweets and create a detailed personality/tone profile for this user. 
 
 Tweets:
-${tweets.slice(0, 50).map((tweet, i) => `${i+1}. ${tweet}`).join('\n')}
+${tweets.slice(0, 50).map((tweet, i) => `${i + 1}. ${tweet}`).join('\n')}
 
 Please provide a JSON response with this structure:
 {
@@ -452,7 +452,7 @@ Focus on extracting genuine personality traits, not just keywords. What makes th
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
-    
+
     // Save to Supabase
     try {
       await saveToneProfileToSupabase(analysis);
@@ -460,7 +460,7 @@ Focus on extracting genuine personality traits, not just keywords. What makes th
       console.error('Failed to save to Supabase:', supabaseError);
       // Continue even if Supabase fails
     }
-    
+
     return analysis;
   } catch (error) {
     console.error('AI analysis failed:', error);
@@ -500,22 +500,22 @@ async function callOpenAIForAnalysis(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.choices[0].message.content.trim();
-  
+
   try {
     // Try to extract JSON from the response if it's wrapped in text
     let jsonContent = content;
-    
+
     // Look for JSON object in the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonContent = jsonMatch[0];
     }
-    
+
     return JSON.parse(jsonContent);
   } catch (parseError) {
     console.error('Failed to parse AI response as JSON:', content);
     console.error('Parse error:', parseError.message);
-    
+
     // Return a fallback structure if parsing fails
     return {
       writingStyle: {
@@ -523,7 +523,7 @@ async function callOpenAIForAnalysis(prompt, apiKey) {
         personality: "Casual and engaging writing style",
         vocabulary: "Mix of casual and professional language",
         structure: "Varied length tweets with good engagement",
-        humor: "Light humor when appropriate", 
+        humor: "Light humor when appropriate",
         engagement: "Supportive and encouraging responses"
       },
       examples: [
@@ -563,21 +563,21 @@ async function callClaudeForAnalysis(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.content[0].text.trim();
-  
+
   try {
     // Try to extract JSON from the response if it's wrapped in text
     let jsonContent = content;
-    
+
     // Look for JSON object in the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonContent = jsonMatch[0];
     }
-    
+
     return JSON.parse(jsonContent);
   } catch (parseError) {
     console.error('Failed to parse Claude response as JSON:', content);
-    
+
     // Return a fallback structure if parsing fails
     return {
       writingStyle: {
@@ -585,7 +585,7 @@ async function callClaudeForAnalysis(prompt, apiKey) {
         personality: "Casual and engaging writing style",
         vocabulary: "Mix of casual and professional language",
         structure: "Varied length tweets with good engagement",
-        humor: "Light humor when appropriate", 
+        humor: "Light humor when appropriate",
         engagement: "Supportive and encouraging responses"
       },
       examples: [
@@ -624,21 +624,21 @@ async function callGeminiForAnalysis(prompt, apiKey) {
 
   const data = await response.json();
   const content = data.candidates[0].content.parts[0].text.trim();
-  
+
   try {
     // Try to extract JSON from the response if it's wrapped in text
     let jsonContent = content;
-    
+
     // Look for JSON object in the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonContent = jsonMatch[0];
     }
-    
+
     return JSON.parse(jsonContent);
   } catch (parseError) {
     console.error('Failed to parse Gemini response as JSON:', content);
-    
+
     // Return a fallback structure if parsing fails
     return {
       writingStyle: {
@@ -646,7 +646,7 @@ async function callGeminiForAnalysis(prompt, apiKey) {
         personality: "Casual and engaging writing style",
         vocabulary: "Mix of casual and professional language",
         structure: "Varied length tweets with good engagement",
-        humor: "Light humor when appropriate", 
+        humor: "Light humor when appropriate",
         engagement: "Supportive and encouraging responses"
       },
       examples: [
@@ -661,12 +661,12 @@ async function callGeminiForAnalysis(prompt, apiKey) {
 
 async function saveToneProfileToSupabase(profileData) {
   const result = await chrome.storage.sync.get(['supabaseUrl', 'supabaseKey', 'userId']);
-  
+
   if (!result.supabaseUrl || !result.supabaseKey) {
     console.log('Supabase not configured - skipping cloud save');
     return; // Don't throw error, just skip
   }
-  
+
   let userId = result.userId;
   if (!userId) {
     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
@@ -698,9 +698,9 @@ async function saveToneProfileToSupabase(profileData) {
 function displayAnalysisResults(analysis, tweets) {
   const resultContainer = document.getElementById('upload-result');
   const summaryDiv = resultContainer.querySelector('.analysis-summary');
-  
+
   const style = analysis.writingStyle || {};
-  
+
   summaryDiv.innerHTML = `
     <p><strong>Tweets analyzed:</strong> ${tweets.length}</p>
     <p><strong>Detected tone:</strong> ${style.tone || 'Unknown'}</p>
@@ -712,9 +712,9 @@ function displayAnalysisResults(analysis, tweets) {
       ${(analysis.examples || []).map(ex => `<p style="font-style: italic; margin: 4px 0;">"${ex}"</p>`).join('')}
     </div>
   `;
-  
+
   resultContainer.hidden = false;
-  
+
   // Store analysis data
   window.currentAnalysis = { analysis, tweets };
 }
@@ -722,22 +722,22 @@ function displayAnalysisResults(analysis, tweets) {
 // Analyze manual text
 async function analyzeManualText() {
   const text = document.getElementById('manual-text').value.trim();
-  
+
   if (!text) {
     showNotification('Please enter some text to analyze', 'error');
     return;
   }
-  
+
   const progressContainer = document.getElementById('upload-progress');
   const resultContainer = document.getElementById('upload-result');
-  
+
   progressContainer.hidden = false;
   resultContainer.hidden = true;
-  
+
   try {
     const tweets = text.split('\n').filter(line => line.trim());
     const analysis = await analyzeTweets(tweets);
-    
+
     displayAnalysisResults(analysis, tweets);
   } catch (error) {
     showNotification('Analysis failed: ' + error.message, 'error');
@@ -752,10 +752,10 @@ async function saveAnalyzedProfile() {
     showNotification('No analysis data to save', 'error');
     return;
   }
-  
+
   const name = prompt('Enter a name for this tone profile:');
   if (!name) return;
-  
+
   try {
     await chrome.runtime.sendMessage({
       action: 'saveToneProfile',
@@ -765,10 +765,10 @@ async function saveAnalyzedProfile() {
         analysis: window.currentAnalysis.analysis
       }
     });
-    
+
     showNotification('Tone profile saved successfully', 'success');
     loadToneProfiles(); // Refresh the profiles list
-    
+
   } catch (error) {
     showNotification('Failed to save profile', 'error');
   }
@@ -784,10 +784,10 @@ function createNewProfile() {
 function viewProfileDetails(profileId, profiles) {
   const profile = profiles.find(p => p.id === profileId);
   if (!profile) return;
-  
+
   const analysis = profile.analysis || {};
   const style = analysis.writingStyle || {};
-  
+
   const detailsHtml = `
     <div style="max-width: 400px; padding: 16px;">
       <h3>${profile.name}</h3>
@@ -820,7 +820,7 @@ function viewProfileDetails(profileId, profiles) {
       ` : ''}
     </div>
   `;
-  
+
   // Create a simple modal to show details
   const modal = document.createElement('div');
   modal.style.cssText = `
@@ -828,17 +828,17 @@ function viewProfileDetails(profileId, profiles) {
     background: rgba(0,0,0,0.5); display: flex; align-items: center; 
     justify-content: center; z-index: 10000;
   `;
-  
+
   const content = document.createElement('div');
   content.style.cssText = `
     background: white; border-radius: 8px; max-height: 80%; 
     overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   `;
   content.innerHTML = detailsHtml + `<button onclick="this.closest('[style*=fixed]').remove()" style="margin: 16px; padding: 8px 16px; background: #1da1f2; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>`;
-  
+
   modal.appendChild(content);
   document.body.appendChild(modal);
-  
+
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
@@ -847,16 +847,16 @@ function viewProfileDetails(profileId, profiles) {
 // Delete profile
 async function deleteProfile(profileId) {
   if (!confirm('Are you sure you want to delete this profile?')) return;
-  
+
   try {
     const result = await chrome.storage.sync.get(['toneProfiles']);
     const profiles = result.toneProfiles || [];
     const updatedProfiles = profiles.filter(p => p.id !== profileId);
-    
+
     await chrome.storage.sync.set({ toneProfiles: updatedProfiles });
     showNotification('Profile deleted successfully', 'success');
     loadToneProfiles(); // Refresh the profiles list
-    
+
   } catch (error) {
     showNotification('Failed to delete profile', 'error');
   }
@@ -880,9 +880,9 @@ function showNotification(message, type = 'info') {
     z-index: 10000;
     animation: slideInFromRight 0.3s ease-out;
   `;
-  
+
   document.body.appendChild(notification);
-  
+
   setTimeout(() => {
     notification.remove();
   }, 3000);

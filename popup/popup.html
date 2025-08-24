@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Reply Extension</title>
+  <title>X Reply Extension</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="popup-container">
     <header class="popup-header">
-      <h1>AI Reply Extension</h1>
+      <h1>X Reply Extension</h1>
       <div class="status-indicator">
         <span class="status-dot"></span>
         <span class="status-text">Ready</span>
@@ -44,13 +49,13 @@
         </section>
 
         <section class="settings-section">
-          <h3>Supabase Configuration</h3>
+          <h3>Supabase Configuration (Optional)</h3>
           <div class="input-group">
             <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
             <input type="password" id="supabase-key" placeholder="Your Supabase anon key">
             <button id="save-supabase" class="btn-primary">Save</button>
           </div>
-          <p class="help-text">Required for storing your tone profile and reply history.</p>
+          <p class="help-text">Optional: For storing your tone profile and reply history in the cloud.</p>
         </section>
 
         <section class="settings-section">
@@ -85,7 +90,7 @@
           <h3>Saved Tone Profiles</h3>
           <button id="create-profile" class="btn-secondary">+ New Profile</button>
         </div>
-        
+
         <div id="profiles-list" class="profiles-list">
           <div class="empty-state">
             <p>No tone profiles yet. Upload tweet data to create your first profile!</p>
@@ -98,7 +103,7 @@
         <section class="upload-section">
           <h3>Upload Tweet Data</h3>
           <p class="help-text">Upload a JSON file with tweets to analyze writing style and tone.</p>
-          
+
           <div class="upload-area" id="upload-area">
             <div class="upload-icon">📄</div>
             <p>Drag & drop your tweet data file here</p>
@@ -124,7 +129,7 @@
         <section class="upload-section">
           <h3>Manual Text Input</h3>
           <p class="help-text">Or paste sample text to analyze writing style.</p>
-          
+
           <textarea id="manual-text" placeholder="Paste sample tweets or text here..."></textarea>
           <button class="btn-secondary" id="analyze-text">Analyze Text</button>
         </section>
@@ -142,4 +147,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>
