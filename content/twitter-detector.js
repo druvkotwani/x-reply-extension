@@ -58,40 +58,53 @@ function addAIReplyButton(replyButton) {
   // Create AI reply button
   const aiButton = document.createElement('button');
   aiButton.className = 'ai-reply-button';
+  
+  // Use the extension icon instead of SVG + text
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon16.png');
   aiButton.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-    </svg>
-    <span>AI</span>
+    <img src="${iconUrl}" width="16" height="16" alt="AI Reply" style="filter: brightness(0) invert(1);">
   `;
   
   aiButton.style.cssText = `
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     margin-left: 8px;
-    padding: 6px 12px;
-    background: linear-gradient(135deg, #1DA1F2, #0084b4);
-    color: white;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(20px);
     border: none;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 9999;
     position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 
+                0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
   `;
   
   // Hover effects
   aiButton.addEventListener('mouseenter', () => {
-    aiButton.style.transform = 'scale(1.05)';
-    aiButton.style.background = 'linear-gradient(135deg, #0084b4, #006699)';
+    aiButton.style.transform = 'scale(1.1) translateY(-1px)';
+    aiButton.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))';
+    aiButton.style.boxShadow = `
+      0 8px 25px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4)
+    `;
   });
   
   aiButton.addEventListener('mouseleave', () => {
-    aiButton.style.transform = 'scale(1)';
-    aiButton.style.background = 'linear-gradient(135deg, #1DA1F2, #0084b4)';
+    aiButton.style.transform = 'scale(1) translateY(0)';
+    aiButton.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))';
+    aiButton.style.boxShadow = `
+      0 4px 15px rgba(0, 0, 0, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3)
+    `;
   });
   
   // Click handler
