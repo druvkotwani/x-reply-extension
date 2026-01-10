@@ -58,22 +58,27 @@
 
         <section class="settings-section">
           <h3>OpenRouter API Key</h3>
-          <p class="help-text">For Claude replies via OpenRouter</p>
+          <div id="openrouter-status" class="api-key-status"></div>
           <div class="input-group">
             <input type="password" id="openrouter-key" placeholder="sk-or-v1-...">
             <button id="save-openrouter" class="btn-primary">Save</button>
+            <button id="delete-openrouter" class="btn-danger-small" style="display: none;">Delete</button>
           </div>
-          <p class="help-text">Get your key at <a href="https://openrouter.ai/keys" target="_blank" style="color: #d4a574;">openrouter.ai/keys</a></p>
         </section>
 
         <section class="settings-section">
-          <h3>OpenAI API Key (Optional)</h3>
-          <p class="help-text">Override default embeddings key</p>
+          <h3>OpenAI API Key</h3>
+          <div id="openai-status" class="api-key-status"></div>
           <div class="input-group">
             <input type="password" id="api-key" placeholder="sk-...">
             <button id="save-api-key" class="btn-primary">Save</button>
+            <button id="delete-openai" class="btn-danger-small" style="display: none;">Delete</button>
           </div>
         </section>
+
+        <div id="api-warning" class="api-warning" style="display: none;">
+          ⚠️ Both API keys are required for the extension to work
+        </div>
       </div>
 
       <!-- Upload Data Tab -->
@@ -124,9 +129,6 @@
     </main>
 
     <footer class="popup-footer">
-      <div class="footer-links">
-        <a href="#" id="help-link">Help</a>
-      </div>
       <div class="footer-version">v2.0.0</div>
     </footer>
   </div>

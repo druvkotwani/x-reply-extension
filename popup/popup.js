@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadSettings();
   loadTweetStatus();
   loadStyleProfileStatus();
+  loadApiKeyStatus();
 });
 
 // Initialize popup interface
@@ -44,6 +45,8 @@ function setupEventListeners() {
   // Settings
   document.getElementById('save-api-key').addEventListener('click', saveApiKey);
   document.getElementById('save-openrouter').addEventListener('click', saveOpenRouterKey);
+  document.getElementById('delete-openai').addEventListener('click', deleteOpenAIKey);
+  document.getElementById('delete-openrouter').addEventListener('click', deleteOpenRouterKey);
 
   // Upload
   const uploadArea = document.getElementById('upload-area');
@@ -104,6 +107,7 @@ async function saveApiKey() {
     await chrome.storage.sync.set({ openaiApiKey: apiKey });
     showNotification('OpenAI API key saved', 'success');
     apiKeyInput.value = '';
+    loadApiKeyStatus(); // Refresh status
   } catch (error) {
     showNotification('Failed to save API key', 'error');
   }
@@ -123,8 +127,82 @@ async function saveOpenRouterKey() {
     await chrome.storage.sync.set({ openrouterApiKey: apiKey });
     showNotification('OpenRouter API key saved', 'success');
     apiKeyInput.value = '';
+    loadApiKeyStatus(); // Refresh status
   } catch (error) {
     showNotification('Failed to save API key', 'error');
+  }
+}
+
+// Delete OpenAI API key
+async function deleteOpenAIKey() {
+  try {
+    await chrome.storage.sync.remove('openaiApiKey');
+    showNotification('OpenAI API key deleted', 'success');
+    document.getElementById('api-key').placeholder = 'sk-...';
+    loadApiKeyStatus();
+  } catch (error) {
+    showNotification('Failed to delete API key', 'error');
+  }
+}
+
+// Delete OpenRouter API key
+async function deleteOpenRouterKey() {
+  try {
+    await chrome.storage.sync.remove('openrouterApiKey');
+    showNotification('OpenRouter API key deleted', 'success');
+    document.getElementById('openrouter-key').placeholder = 'sk-or-v1-...';
+    loadApiKeyStatus();
+  } catch (error) {
+    showNotification('Failed to delete API key', 'error');
+  }
+}
+
+// Load and display API key status
+async function loadApiKeyStatus() {
+  try {
+    const result = await chrome.storage.sync.get(['openaiApiKey', 'openrouterApiKey']);
+    const apiWarning = document.getElementById('api-warning');
+
+    // OpenRouter status
+    const openrouterStatus = document.getElementById('openrouter-status');
+    const deleteOpenrouterBtn = document.getElementById('delete-openrouter');
+    const hasOpenRouter = !!result.openrouterApiKey;
+
+    if (hasOpenRouter) {
+      const maskedKey = result.openrouterApiKey.substring(0, 12) + '...' + result.openrouterApiKey.slice(-4);
+      openrouterStatus.innerHTML = `✓ Key set: <code>${maskedKey}</code>`;
+      openrouterStatus.className = 'api-key-status set';
+      deleteOpenrouterBtn.style.display = 'inline-block';
+    } else {
+      openrouterStatus.innerHTML = '✗ No key set';
+      openrouterStatus.className = 'api-key-status not-set';
+      deleteOpenrouterBtn.style.display = 'none';
+    }
+
+    // OpenAI status
+    const openaiStatus = document.getElementById('openai-status');
+    const deleteOpenaiBtn = document.getElementById('delete-openai');
+    const hasOpenAI = !!result.openaiApiKey;
+
+    if (hasOpenAI) {
+      const maskedKey = result.openaiApiKey.substring(0, 8) + '...' + result.openaiApiKey.slice(-4);
+      openaiStatus.innerHTML = `✓ Key set: <code>${maskedKey}</code>`;
+      openaiStatus.className = 'api-key-status set';
+      deleteOpenaiBtn.style.display = 'inline-block';
+    } else {
+      openaiStatus.innerHTML = '✗ No key set';
+      openaiStatus.className = 'api-key-status not-set';
+      deleteOpenaiBtn.style.display = 'none';
+    }
+
+    // Show warning if either key is missing
+    if (!hasOpenRouter || !hasOpenAI) {
+      apiWarning.style.display = 'block';
+    } else {
+      apiWarning.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Failed to load API key status:', error);
   }
 }
 
@@ -134,10 +212,10 @@ async function loadSettings() {
     const result = await chrome.storage.sync.get(['openaiApiKey', 'openrouterApiKey']);
     // Keys are stored but not displayed for security
     if (result.openaiApiKey) {
-      document.getElementById('api-key').placeholder = '••••••••••••••••';
+      document.getElementById('api-key').placeholder = 'Enter new key to replace';
     }
     if (result.openrouterApiKey) {
-      document.getElementById('openrouter-key').placeholder = '••••••••••••••••';
+      document.getElementById('openrouter-key').placeholder = 'Enter new key to replace';
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
