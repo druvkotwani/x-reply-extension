@@ -1,4 +1,4 @@
-/* AI Reply Popup Styles */
+/* AI Reply Popup Styles - Terminal Dark Theme */
 .ai-reply-popup {
   position: fixed;
   top: 0;
@@ -9,8 +9,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  font-family: 'Geist Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
 .ai-popup-overlay {
@@ -19,270 +18,367 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 .ai-popup-content {
   position: relative;
-  background: rgba(83, 84, 88, 0.35) !important;
-  backdrop-filter: blur(40px) saturate(1.8);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 20px;
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4), 0 16px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  max-width: 500px;
+  background: #0d0d14 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  max-width: 480px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
   z-index: 10001;
-  color: #ffffff !important;
+  color: #e4e4e7 !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
 }
 
 .ai-popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(83, 84, 88, 0.2);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 20px 20px 0 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #13131a;
+  border-radius: 12px 12px 0 0;
 }
 
 .ai-popup-header h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: "Poppins", sans-serif;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.01em;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Geist Mono', monospace;
+  color: #e4e4e7;
+  letter-spacing: -0.02em;
 }
 
 .ai-popup-close {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 16px;
   cursor: pointer;
-  color: #ffffff;
-  padding-bottom: 2px;
-  width: 32px;
-  height: 32px;
+  color: #6b7280;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .ai-popup-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(83, 84, 88, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
 }
 
 .ai-popup-body {
-  padding: 20px 24px 24px;
+  padding: 20px;
 }
 
 .tweet-context {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: rgba(83, 84, 88, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  border-left: 4px solid rgba(83, 84, 88, 0.8);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #d4a574;
 }
 
 .tweet-context strong {
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  font-family: "Poppins", sans-serif;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #d4a574;
+  font-weight: 500;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .tweet-context p {
   margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  font-family: "Poppins", sans-serif;
-  font-weight: 400;
-  line-height: 1.5;
+  color: #9ca3af;
+  font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.6;
 }
 
 .ai-suggestions {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .ai-suggestions h4,
 .manual-input h4 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  font-weight: 600;
-  font-family: "Poppins", sans-serif;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Geist Mono', monospace;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .suggestion-item {
   margin-bottom: 12px;
-  padding: 16px;
-  background: rgba(83, 84, 88, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 14px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
 }
 
 .suggestion-item:hover {
-  background: rgba(83, 84, 88, 0.2);
-  border-color: rgba(83, 84, 88, 0.8);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.suggestion-label {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Geist Mono', monospace;
+  color: #d4a574;
+  margin-bottom: 8px;
+  text-transform: capitalize;
+}
+
+.suggestion-text {
+  margin: 0 0 12px;
+  color: #e4e4e7;
+  font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .suggestion-item p {
   margin: 0 0 12px;
-  color: #ffffff;
-  font-size: 14px;
-  font-family: "Poppins", sans-serif;
-  font-weight: 400;
-  line-height: 1.5;
+  color: #e4e4e7;
+  font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.6;
 }
 
 .copy-suggestion,
 .generate-custom {
-  background: rgba(83, 84, 88, 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  padding: 10px 16px 8px 16px;
-  font-size: 13px;
-  font-family: "Poppins", sans-serif;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.01em;
 }
 
 .copy-suggestion:hover,
 .generate-custom:hover {
-  background: rgba(83, 84, 88, 0.5);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
 }
 
-.copy-suggestion:active {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+.generate-custom {
+  background: #d4a574;
+  color: #0d0d14;
+  border-color: #d4a574;
+}
+
+.generate-custom:hover {
+  background: #e0b088;
+  border-color: #e0b088;
+  color: #0d0d14;
 }
 
 .manual-input textarea {
   width: 100%;
   min-height: 80px;
   padding: 12px;
-  background: rgba(83, 84, 88, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: "Poppins", inherit;
-  color: #ffffff;
+  background: #0f0f16;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+  color: #e4e4e7;
   resize: vertical;
   margin-bottom: 12px;
   box-sizing: border-box;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.2s ease;
 }
 
 .manual-input textarea:focus {
   outline: none;
-  border-color: rgba(83, 84, 88, 0.8);
-  background: rgba(83, 84, 88, 0.18);
-  box-shadow: 0 0 0 2px rgba(83, 84, 88, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: #d4a574;
 }
 
 .manual-input textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #6b7280;
 }
 
 /* Custom result styling */
 .custom-result {
-  background: rgba(83, 84, 88, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .custom-reply-text {
-  background: rgba(83, 84, 88, 0.1);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: #0f0f16;
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
   padding: 12px;
   margin: 8px 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-family: 'Geist Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .copy-custom-reply {
-  background: rgba(83, 84, 88, 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  padding: 10px 16px 8px 16px;
-  font-size: 13px;
-  font-family: "Poppins", sans-serif;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.01em;
 }
 
 .copy-custom-reply:hover {
-  background: rgba(83, 84, 88, 0.5);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
+}
+
+/* Loading state */
+.ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+  color: #6b7280;
+}
+
+.ai-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-top-color: #d4a574;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-loading-text {
+  font-size: 12px;
+  font-family: 'Geist Mono', monospace;
 }
 
 /* Button animation */
 .ai-reply-button {
-  animation: slideInFromRight 0.3s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
-@keyframes slideInFromRight {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateX(20px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
+}
+
+/* Scrollbar */
+.ai-popup-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-popup-content::-webkit-scrollbar-track {
+  background: #0d0d14;
+}
+
+.ai-popup-content::-webkit-scrollbar-thumb {
+  background: #1a1a24;
+  border-radius: 3px;
+}
+
+.ai-popup-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Thread Context Styles */
+.thread-context {
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.thread-context > strong {
+  color: #d4a574;
+  font-weight: 500;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.thread-item {
+  padding: 10px 12px;
+  background: #0f0f16;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border-left: 2px solid #6b7280;
+}
+
+.thread-item.replying-to {
+  border-left-color: #4ade80;
+  background: rgba(74, 222, 128, 0.05);
+}
+
+.thread-author {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Geist Mono', monospace;
+  color: #9ca3af;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.thread-item.replying-to .thread-author {
+  color: #4ade80;
+}
+
+.thread-text {
+  margin: 0;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.5;
 }

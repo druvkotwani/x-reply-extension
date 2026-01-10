@@ -1,1 +1,10 @@
 node_modules
+.env
+.env.local
+.env.*
+
+# Tweet data files (personal data)
+tweets.json
+tweets2.json
+tweets2-cleaned.json
+*.json.bak

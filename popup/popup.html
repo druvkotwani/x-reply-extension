@@ -7,7 +7,7 @@
   <title>X Reply Extension</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 
@@ -23,93 +23,80 @@
 
     <nav class="popup-nav">
       <button class="nav-btn active" data-tab="settings">Settings</button>
-      <button class="nav-btn" data-tab="profiles">Tone Profiles</button>
-      <button class="nav-btn" data-tab="upload">Upload Data</button>
+      <button class="nav-btn" data-tab="upload">Upload Tweets</button>
     </nav>
 
     <main class="popup-main">
       <!-- Settings Tab -->
       <div class="tab-content active" id="settings-tab">
         <section class="settings-section">
-          <h3>AI Provider</h3>
-          <select id="ai-provider">
-            <option value="openai">OpenAI (GPT)</option>
-            <option value="claude">Anthropic Claude</option>
-            <option value="gemini">Google Gemini</option>
-          </select>
+          <h3>Tweet Status</h3>
+          <div id="tweet-status">
+            <div class="status-card empty">
+              <span class="status-icon">○</span>
+              <div>
+                <strong>Loading...</strong>
+              </div>
+            </div>
+          </div>
+          <button id="delete-tweets-btn" class="btn-danger" style="display: none; margin-top: 14px; margin-bottom: 8px;">Delete All Tweets</button>
         </section>
 
         <section class="settings-section">
-          <h3>AI API Key</h3>
+          <h3>Style Profile</h3>
+          <div id="style-profile-status">
+            <div class="status-card empty">
+              <span class="status-icon">○</span>
+              <div>
+                <strong>No style profile</strong>
+                <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Generate to improve reply quality</p>
+              </div>
+            </div>
+          </div>
+          <button id="generate-style-btn" class="btn-primary" style="margin-top: 14px;">Generate Style Profile</button>
+        </section>
+
+        <section class="settings-section">
+          <h3>OpenRouter API Key</h3>
+          <p class="help-text">For Claude replies via OpenRouter</p>
           <div class="input-group">
-            <input type="password" id="api-key" placeholder="Enter your AI API key">
+            <input type="password" id="openrouter-key" placeholder="sk-or-v1-...">
+            <button id="save-openrouter" class="btn-primary">Save</button>
+          </div>
+          <p class="help-text">Get your key at <a href="https://openrouter.ai/keys" target="_blank" style="color: #d4a574;">openrouter.ai/keys</a></p>
+        </section>
+
+        <section class="settings-section">
+          <h3>OpenAI API Key (Optional)</h3>
+          <p class="help-text">Override default embeddings key</p>
+          <div class="input-group">
+            <input type="password" id="api-key" placeholder="sk-...">
             <button id="save-api-key" class="btn-primary">Save</button>
           </div>
-          <p class="help-text">Your API key is stored locally and never shared.</p>
         </section>
-
-        <section class="settings-section">
-          <h3>Supabase Configuration (Optional)</h3>
-          <div class="input-group">
-            <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
-            <input type="password" id="supabase-key" placeholder="Your Supabase anon key">
-            <button id="save-supabase" class="btn-primary">Save</button>
-          </div>
-          <p class="help-text">Optional: For storing your tone profile and reply history in the cloud.</p>
-        </section>
-
-        <section class="settings-section">
-          <h3>Default Tone</h3>
-          <select id="default-tone">
-            <option value="friendly">Friendly</option>
-            <option value="professional">Professional</option>
-            <option value="casual">Casual</option>
-            <option value="witty">Witty</option>
-            <option value="supportive">Supportive</option>
-          </select>
-        </section>
-
-        <section class="settings-section">
-          <h3>Reply Options</h3>
-          <label class="checkbox-label">
-            <input type="checkbox" id="auto-suggest" checked>
-            <span class="checkmark"></span>
-            Auto-suggest replies when viewing tweets
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="context-aware" checked>
-            <span class="checkmark"></span>
-            Use conversation context for better replies
-          </label>
-        </section>
-      </div>
-
-      <!-- Tone Profiles Tab -->
-      <div class="tab-content" id="profiles-tab">
-        <div class="profiles-header">
-          <h3>Saved Tone Profiles</h3>
-          <button id="create-profile" class="btn-secondary">+ New Profile</button>
-        </div>
-
-        <div id="profiles-list" class="profiles-list">
-          <div class="empty-state">
-            <p>No tone profiles yet. Upload tweet data to create your first profile!</p>
-          </div>
-        </div>
       </div>
 
       <!-- Upload Data Tab -->
       <div class="tab-content" id="upload-tab">
         <section class="upload-section">
           <h3>Upload Tweet Data</h3>
-          <p class="help-text">Upload a JSON file with tweets to analyze writing style and tone.</p>
+          <p class="help-text">Upload your tweets to enable AI-powered replies that match your writing style.</p>
 
           <div class="upload-area" id="upload-area">
-            <div class="upload-icon">📄</div>
-            <p>Drag & drop your tweet data file here</p>
-            <p class="upload-subtitle">or</p>
-            <button class="btn-secondary" id="file-select">Choose File</button>
-            <input type="file" id="file-input" accept=".json,.csv" hidden>
+            <div class="upload-header">
+              <div class="terminal-dots">
+                <span class="terminal-dot red"></span>
+                <span class="terminal-dot yellow"></span>
+                <span class="terminal-dot green"></span>
+              </div>
+            </div>
+            <div class="upload-content">
+              <div class="upload-icon">~</div>
+              <p>Drag & drop your tweet data file here</p>
+              <p class="upload-subtitle">or</p>
+              <button class="btn-secondary" id="file-select">Choose File</button>
+              <input type="file" id="file-input" accept=".json,.csv" hidden>
+            </div>
           </div>
 
           <div class="upload-progress" id="upload-progress" hidden>
@@ -120,17 +107,17 @@
           </div>
 
           <div class="upload-result" id="upload-result" hidden>
-            <h4>Analysis Complete!</h4>
+            <h4>Ready to Upload</h4>
             <div class="analysis-summary"></div>
-            <button class="btn-primary" id="save-profile">Save as Tone Profile</button>
+            <button class="btn-primary" id="upload-tweets-btn">Upload & Process</button>
           </div>
         </section>
 
         <section class="upload-section">
           <h3>Manual Text Input</h3>
-          <p class="help-text">Or paste sample text to analyze writing style.</p>
+          <p class="help-text">Or paste sample tweets (one per line).</p>
 
-          <textarea id="manual-text" placeholder="Paste sample tweets or text here..."></textarea>
+          <textarea id="manual-text" placeholder="Paste sample tweets here..."></textarea>
           <button class="btn-secondary" id="analyze-text">Analyze Text</button>
         </section>
       </div>
@@ -139,9 +126,8 @@
     <footer class="popup-footer">
       <div class="footer-links">
         <a href="#" id="help-link">Help</a>
-        <a href="#" id="privacy-link">Privacy</a>
       </div>
-      <div class="footer-version">v1.0.0</div>
+      <div class="footer-version">v2.0.0</div>
     </footer>
   </div>
 

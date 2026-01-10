@@ -1,240 +1,260 @@
-// Supabase client for storing tone profiles and reply history
+// Supabase Client for X Reply Extension
+// Uses REST API directly for vector similarity search
 
-class SupabaseClient {
-  constructor() {
-    this.url = null;
-    this.key = null;
-    this.userId = null;
-  }
+const supabaseClient = {
+  // Insert a tweet with its embedding
+  async insertTweet(content, embedding, userId = null) {
+    // Use service key for write operations
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
 
-  // Initialize with Supabase credentials
-  async init() {
-    const result = await chrome.storage.sync.get(['supabaseUrl', 'supabaseKey', 'userId']);
-    this.url = result.supabaseUrl;
-    this.key = result.supabaseKey;
-    this.userId = result.userId || this.generateUserId();
+    const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/tweets`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        content: content,
+        embedding: embedding,
+        user_id: userId || CONFIG.DEFAULT_USER_ID
+      })
+    });
 
-    if (!this.url || !this.key) {
-      throw new Error('Supabase credentials not configured. Please add your Supabase URL and API key in settings.');
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to insert tweet: ${error}`);
     }
 
-    // Store userId if it was generated
-    if (!result.userId) {
-      await chrome.storage.sync.set({ userId: this.userId });
+    return true;
+  },
+
+  // Insert multiple tweets with embeddings (batch)
+  async insertTweetsBatch(tweets, userId = null) {
+    // Use service key for write operations (bypasses RLS)
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+
+    const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/tweets`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(tweets.map(t => ({
+        content: t.content,
+        embedding: t.embedding,
+        user_id: userId || CONFIG.DEFAULT_USER_ID
+      })))
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to insert tweets batch: ${error}`);
     }
-  }
 
-  // Generate a unique user ID
-  generateUserId() {
-    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  }
+    return true;
+  },
 
-  // Save tone profile to Supabase
-  async saveToneProfile(profileData) {
-    await this.init();
+  // Search for similar tweets using vector similarity
+  async searchSimilarTweets(queryEmbedding, matchCount = 20, userId = null) {
+    const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/rpc/match_tweets`, {
+      method: 'POST',
+      headers: {
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query_embedding: queryEmbedding,
+        match_count: matchCount,
+        filter_user_id: userId
+      })
+    });
 
-    try {
-      const response = await fetch(`${this.url}/rest/v1/tone_profiles`, {
-        method: 'POST',
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to search tweets: ${error}`);
+    }
+
+    return await response.json();
+  },
+
+  // Get all tweets for a user (without embeddings for display)
+  async getTweetsByUser(userId) {
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&select=id,content,created_at&order=created_at.desc`,
+      {
         headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          user_id: this.userId,
-          profile_data: profileData,
-          created_at: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to save tone profile: ${error}`);
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error('Supabase save error:', error);
-      throw error;
-    }
-  }
-
-  // Get latest tone profile
-  async getToneProfile() {
-    await this.init();
-
-    try {
-      const response = await fetch(
-        `${this.url}/rest/v1/tone_profiles?user_id=eq.${this.userId}&order=created_at.desc&limit=1`,
-        {
-          headers: {
-            'apikey': this.key,
-            'Authorization': `Bearer ${this.key}`
-          }
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch tone profile');
       }
+    );
 
-      const data = await response.json();
-      return data.length > 0 ? data[0].profile_data : null;
-    } catch (error) {
-      console.error('Supabase fetch error:', error);
-      throw error;
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get tweets: ${error}`);
     }
-  }
 
-  // Save reply to history
-  async saveReply(originalTweet, userReply) {
-    await this.init();
+    return await response.json();
+  },
 
-    try {
-      const response = await fetch(`${this.url}/rest/v1/replies_history`, {
-        method: 'POST',
+  // Get tweet count for a user
+  async getTweetCount(userId) {
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&select=id`,
+      {
         headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          user_id: this.userId,
-          original_tweet: originalTweet,
-          user_reply: userReply,
-          timestamp: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Failed to save reply:', error);
-        // Don't throw error for reply saving - it's not critical
-      }
-    } catch (error) {
-      console.error('Reply save error:', error);
-      // Silently fail - reply history is nice to have but not essential
-    }
-  }
-
-  // Get recent reply history
-  async getReplyHistory(limit = 10) {
-    await this.init();
-
-    try {
-      const response = await fetch(
-        `${this.url}/rest/v1/replies_history?user_id=eq.${this.userId}&order=timestamp.desc&limit=${limit}`,
-        {
-          headers: {
-            'apikey': this.key,
-            'Authorization': `Bearer ${this.key}`
-          }
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+          'Prefer': 'count=exact',
+          'Range-Unit': 'items',
+          'Range': '0-0'
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch reply history');
       }
+    );
 
-      return await response.json();
-    } catch (error) {
-      console.error('Reply history fetch error:', error);
-      return []; // Return empty array if fetch fails
+    if (!response.ok) {
+      return 0;
     }
-  }
 
-  // Update tone profile with new data
-  async updateToneProfile(profileData) {
-    await this.init();
-
-    try {
-      // First get the existing profile ID
-      const existing = await fetch(
-        `${this.url}/rest/v1/tone_profiles?user_id=eq.${this.userId}&order=created_at.desc&limit=1`,
-        {
-          headers: {
-            'apikey': this.key,
-            'Authorization': `Bearer ${this.key}`
-          }
-        }
-      );
-
-      const existingData = await existing.json();
-
-      if (existingData.length > 0) {
-        // Update existing profile
-        const response = await fetch(
-          `${this.url}/rest/v1/tone_profiles?id=eq.${existingData[0].id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': this.key,
-              'Authorization': `Bearer ${this.key}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-              profile_data: profileData,
-              updated_at: new Date().toISOString()
-            })
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to update tone profile');
-        }
-      } else {
-        // Create new profile if none exists
-        await this.saveToneProfile(profileData);
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error('Profile update error:', error);
-      throw error;
+    const count = response.headers.get('content-range');
+    if (count) {
+      const match = count.match(/\/(\d+)/);
+      return match ? parseInt(match[1]) : 0;
     }
-  }
 
-  // Delete all user data (for privacy)
-  async deleteUserData() {
-    await this.init();
+    return 0;
+  },
 
-    try {
-      // Delete tone profiles
-      await fetch(`${this.url}/rest/v1/tone_profiles?user_id=eq.${this.userId}`, {
+  // Delete all tweets for a user
+  async deleteUserTweets(userId) {
+    // Use service key for delete operations
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}`,
+      {
         method: 'DELETE',
         headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
         }
-      });
+      }
+    );
 
-      // Delete reply history
-      await fetch(`${this.url}/rest/v1/replies_history?user_id=eq.${this.userId}`, {
-        method: 'DELETE',
-        headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`
-        }
-      });
-
-      // Clear local user ID
-      await chrome.storage.sync.remove(['userId']);
-
-      return { success: true };
-    } catch (error) {
-      console.error('Data deletion error:', error);
-      throw error;
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to delete tweets: ${error}`);
     }
-  }
-}
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = SupabaseClient;
-} else {
-  window.SupabaseClient = SupabaseClient;
+    return true;
+  },
+
+  // Check if user has tweets
+  async hasUserTweets(userId) {
+    const count = await this.getTweetCount(userId);
+    return count > 0;
+  },
+
+  // ========== STYLE PROFILE FUNCTIONS ==========
+
+  // Save style profile
+  async saveStyleProfile(profile, tweetCount, userId = null) {
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+
+    const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/style_profiles`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId || CONFIG.DEFAULT_USER_ID,
+        profile: profile,
+        tweet_count: tweetCount
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to save style profile: ${error}`);
+    }
+
+    return true;
+  },
+
+  // Get latest style profile for user (or specific one by ID)
+  async getStyleProfile(userId = null, profileId = null) {
+    let url;
+    if (profileId) {
+      url = `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?id=eq.${profileId}`;
+    } else {
+      url = `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&order=created_at.desc&limit=1`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.length > 0 ? data[0] : null;
+  },
+
+  // Get ALL style profiles for user
+  async getAllStyleProfiles(userId = null) {
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&order=created_at.desc`,
+      {
+        headers: {
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return await response.json();
+  },
+
+  // Get all tweet contents for analysis (no embeddings)
+  async getAllTweetContents(userId = null, limit = 1000) {
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&select=content&limit=${limit}`,
+      {
+        headers: {
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get tweets: ${error}`);
+    }
+
+    const tweets = await response.json();
+    return tweets.map(t => t.content);
+  }
+};
+
+// Make available globally for service worker
+if (typeof self !== 'undefined') {
+  self.supabaseClient = supabaseClient;
 }

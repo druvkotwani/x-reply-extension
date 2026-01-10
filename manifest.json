@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "X Reply Extension",
-  "version": "1.1.0",
-  "description": "Generate contextually appropriate Twitter replies using AI tone analysis",
+  "version": "2.0.0",
+  "description": "Generate AI-powered Twitter replies that match your writing style using semantic search",
 
   "permissions": ["storage", "activeTab"],
 
@@ -38,8 +38,8 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "popup/*", "utils/*"],
-      "matches": ["https://twitter.com/*", "https://x.com/*"]
+      "resources": ["assets/*", "popup/*", "utils/*", "utils/tweet-storage.js"],
+      "matches": ["https://twitter.com/*", "https://x.com/*", "<all_urls>"]
     }
   ],
 
