@@ -29,31 +29,26 @@
     <main class="popup-main">
       <!-- Settings Tab -->
       <div class="tab-content active" id="settings-tab">
-        <section class="settings-section">
-          <h3>Tweet Status</h3>
-          <div id="tweet-status">
-            <div class="status-card empty">
-              <span class="status-icon">○</span>
-              <div>
-                <strong>Loading...</strong>
-              </div>
-            </div>
-          </div>
-          <button id="delete-tweets-btn" class="btn-danger" style="display: none; margin-top: 14px; margin-bottom: 8px;">Delete All Tweets</button>
+        <section class="settings-section" style="margin-bottom: 28px;">
+          <h3>Tweet Source</h3>
+          <select id="tweet-source-select" style="width: 100%; padding: 10px 12px; background: #0f0f16; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: #e4e4e7; font-family: 'Geist Mono', monospace; font-size: 13px;">
+            <option value="">Loading...</option>
+          </select>
+        </section>
+
+        <section class="settings-section" style="margin-bottom: 28px;">
+          <h3>Style Profile</h3>
+          <select id="style-profile-select" style="width: 100%; padding: 10px 12px; background: #0f0f16; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: #e4e4e7; font-family: 'Geist Mono', monospace; font-size: 13px;">
+            <option value="">No style profile</option>
+          </select>
+          <button id="generate-style-btn" class="btn-primary" style="margin-top: 14px;">Generate Style Profile</button>
         </section>
 
         <section class="settings-section">
-          <h3>Style Profile</h3>
-          <div id="style-profile-status">
-            <div class="status-card empty">
-              <span class="status-icon">○</span>
-              <div>
-                <strong>No style profile</strong>
-                <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Generate to improve reply quality</p>
-              </div>
-            </div>
+          <h3>User Management</h3>
+          <div id="user-list" style="margin-top: 10px;">
+            <p class="help-text">Loading users...</p>
           </div>
-          <button id="generate-style-btn" class="btn-primary" style="margin-top: 14px;">Generate Style Profile</button>
         </section>
 
         <section class="settings-section">
@@ -85,7 +80,15 @@
       <div class="tab-content" id="upload-tab">
         <section class="upload-section">
           <h3>Upload Tweet Data</h3>
-          <p class="help-text">Upload your tweets to enable AI-powered replies that match your writing style.</p>
+
+          <div style="margin: 16px 0 20px;">
+            <label style="font-size: 11px; color: #6b7280; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Username <span style="color: #ef4444;">*</span></label>
+            <div style="display: flex; align-items: center; background: #0f0f16; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+              <span style="padding: 12px; color: #6b7280; font-family: 'Geist Mono', monospace; font-size: 13px; background: #0a0a0f; border-right: 1px solid rgba(255,255,255,0.08);">@</span>
+              <input type="text" id="upload-username" placeholder="username" style="flex: 1; padding: 12px; background: transparent; border: none; color: #e4e4e7; font-family: 'Geist Mono', monospace; font-size: 13px; outline: none;">
+            </div>
+            <p class="help-text" style="margin-top: 8px;">Required. Tweets will be stored under this username.</p>
+          </div>
 
           <div class="upload-area" id="upload-area">
             <div class="upload-header">
@@ -118,13 +121,6 @@
           </div>
         </section>
 
-        <section class="upload-section">
-          <h3>Manual Text Input</h3>
-          <p class="help-text">Or paste sample tweets (one per line).</p>
-
-          <textarea id="manual-text" placeholder="Paste sample tweets here..."></textarea>
-          <button class="btn-secondary" id="analyze-text">Analyze Text</button>
-        </section>
       </div>
     </main>
 

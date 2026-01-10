@@ -2,12 +2,27 @@
 // Converts text to vector embeddings for semantic search
 
 const openaiEmbeddings = {
+  // Get API key from storage or config
+  async getApiKey() {
+    let apiKey = CONFIG.OPENAI_API_KEY;
+    if (!apiKey) {
+      const result = await chrome.storage.sync.get(['openaiApiKey']);
+      apiKey = result.openaiApiKey;
+    }
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured. Please add it in extension settings.');
+    }
+    return apiKey;
+  },
+
   // Generate embedding for a single text
   async getEmbedding(text) {
+    const apiKey = await this.getApiKey();
+
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -28,6 +43,7 @@ const openaiEmbeddings = {
   // Generate embeddings for multiple texts (batch)
   // OpenAI supports up to 2048 inputs per request
   async getEmbeddingsBatch(texts, batchSize = 100) {
+    const apiKey = await this.getApiKey();
     const allEmbeddings = [];
 
     for (let i = 0; i < texts.length; i += batchSize) {
@@ -36,7 +52,7 @@ const openaiEmbeddings = {
       const response = await fetch('https://api.openai.com/v1/embeddings', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

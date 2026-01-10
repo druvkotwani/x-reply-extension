@@ -75,8 +75,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
+
+    case 'getAllUsernames':
+      supabaseClient.getAllUsernames()
+        .then(usernames => sendResponse({ success: true, data: usernames }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case 'deleteUserData':
+      deleteUserData(request.data.username)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
   }
 });
+
+// Delete all data for a specific username (tweets + style profiles)
+async function deleteUserData(username) {
+  await supabaseClient.deleteUserTweetsByUsername(username);
+  await supabaseClient.deleteStyleProfilesByUsername(username);
+  return true;
+}
 
 // Save a copied reply to database with embedding (for learning)
 async function saveCopiedReply(data) {
@@ -88,13 +107,22 @@ async function saveCopiedReply(data) {
   }
 
   try {
-    console.log('Saving copied reply to database...');
+    // Get selected tweet source from storage
+    const storage = await chrome.storage.sync.get(['selectedTweetSource']);
+    const selectedTweetSource = storage.selectedTweetSource;
+
+    if (!selectedTweetSource) {
+      console.log('No tweet source selected, skipping save');
+      return;
+    }
+
+    console.log(`Saving copied reply to @${selectedTweetSource}'s tweets...`);
 
     // Generate embedding for the reply
     const embedding = await openaiEmbeddings.getEmbedding(reply);
 
-    // Save to Supabase
-    await supabaseClient.insertTweet(reply, embedding);
+    // Save to Supabase with the selected user
+    await supabaseClient.insertTweet(reply, embedding, selectedTweetSource);
 
     console.log('Reply saved successfully!');
   } catch (error) {
@@ -276,30 +304,36 @@ async function generateAIReplies(data) {
   const { originalTweet, thread, isThread } = data;
 
   try {
-    // Check if user has tweets
-    const hasTweets = await supabaseClient.hasUserTweets();
-    if (!hasTweets) {
-      throw new Error('No tweets found. Please upload your tweets first.');
+    // Get selected tweet source and style profile from storage
+    const storage = await chrome.storage.sync.get(['selectedTweetSource', 'activeStyleProfileId']);
+    const selectedTweetSource = storage.selectedTweetSource;
+    const activeProfileId = storage.activeStyleProfileId;
+
+    // Check if user has tweets for the selected source
+    if (!selectedTweetSource) {
+      throw new Error('No tweet source selected. Please select a user in extension settings.');
+    }
+
+    const tweetCount = await supabaseClient.getTweetCount(selectedTweetSource);
+    if (tweetCount === 0) {
+      throw new Error(`No tweets found for @${selectedTweetSource}. Please upload tweets first.`);
     }
 
     // 1. Get style profile (if exists) - use active profile if set
-    const storage = await chrome.storage.sync.get(['activeStyleProfileId']);
-    const activeProfileId = storage.activeStyleProfileId;
-
     const styleProfileData = activeProfileId
       ? await supabaseClient.getStyleProfile(null, activeProfileId)
-      : await supabaseClient.getStyleProfile();
+      : null;
     const styleProfile = styleProfileData?.profile;
 
     // 2. Generate embedding for the tweet being replied to
     const queryEmbedding = await openaiEmbeddings.getEmbedding(originalTweet);
 
-    // 3. Semantic search for similar tweets (fewer needed if we have style profile)
+    // 3. Semantic search for similar tweets from selected user (fewer needed if we have style profile)
     const numTweets = styleProfile ? 10 : 25;
-    const similarTweets = await supabaseClient.searchSimilarTweets(queryEmbedding, numTweets);
+    const similarTweets = await supabaseClient.searchSimilarTweets(queryEmbedding, numTweets, selectedTweetSource);
 
     if (!similarTweets || similarTweets.length === 0) {
-      throw new Error('Could not find relevant tweets for context.');
+      throw new Error(`Could not find relevant tweets for @${selectedTweetSource}.`);
     }
 
     // 4. Generate replies using Claude via OpenRouter (with thread context if available)
@@ -604,16 +638,22 @@ async function generateCustomReply(data) {
       throw new Error('OpenRouter API key not configured');
     }
 
+    // Get selected tweet source from storage
+    const storageData = await chrome.storage.sync.get(['selectedTweetSource']);
+    const selectedTweetSource = storageData.selectedTweetSource;
+
     // Get semantic context if available
     let contextPrompt = '';
     try {
-      const hasTweets = await supabaseClient.hasUserTweets();
-      if (hasTweets) {
-        const queryEmbedding = await openaiEmbeddings.getEmbedding(originalTweet + ' ' + customPrompt);
-        const similarTweets = await supabaseClient.searchSimilarTweets(queryEmbedding, 15);
+      if (selectedTweetSource) {
+        const tweetCount = await supabaseClient.getTweetCount(selectedTweetSource);
+        if (tweetCount > 0) {
+          const queryEmbedding = await openaiEmbeddings.getEmbedding(originalTweet + ' ' + customPrompt);
+          const similarTweets = await supabaseClient.searchSimilarTweets(queryEmbedding, 15, selectedTweetSource);
 
-        if (similarTweets && similarTweets.length > 0) {
-          contextPrompt = `\n\nHere are examples of how this person writes:\n${similarTweets.slice(0, 10).map((t, i) => `${i + 1}. "${t.content}"`).join('\n')}\n\nMatch their exact writing style.`;
+          if (similarTweets && similarTweets.length > 0) {
+            contextPrompt = `\n\nHere are examples of how this person writes:\n${similarTweets.slice(0, 10).map((t, i) => `${i + 1}. "${t.content}"`).join('\n')}\n\nMatch their exact writing style.`;
+          }
         }
       }
     } catch (e) {

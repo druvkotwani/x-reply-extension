@@ -232,6 +232,84 @@ const supabaseClient = {
     return await response.json();
   },
 
+  // Get all unique usernames (user_ids) with tweet counts
+  async getAllUsernames() {
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?select=user_id`,
+      {
+        headers: {
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const tweets = await response.json();
+
+    // Count tweets per user
+    const userCounts = {};
+    for (const tweet of tweets) {
+      const userId = tweet.user_id || 'default_user';
+      userCounts[userId] = (userCounts[userId] || 0) + 1;
+    }
+
+    // Convert to array format
+    return Object.entries(userCounts).map(([username, count]) => ({
+      username,
+      tweetCount: count
+    })).sort((a, b) => b.tweetCount - a.tweetCount);
+  },
+
+  // Delete tweets for a specific username
+  async deleteUserTweetsByUsername(username) {
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(username)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to delete tweets: ${error}`);
+    }
+
+    return true;
+  },
+
+  // Delete style profiles for a specific username
+  async deleteStyleProfilesByUsername(username) {
+    const serviceKey = CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?user_id=eq.${encodeURIComponent(username)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to delete style profiles: ${error}`);
+    }
+
+    return true;
+  },
+
   // Get all tweet contents for analysis (no embeddings)
   async getAllTweetContents(userId = null, limit = 1000) {
     const response = await fetch(

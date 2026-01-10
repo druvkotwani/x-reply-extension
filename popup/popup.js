@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initializePopup();
   setupEventListeners();
   loadSettings();
-  loadTweetStatus();
-  loadStyleProfileStatus();
+  loadUserData(); // Load usernames, tweet sources, and style profiles
   loadApiKeyStatus();
 });
 
@@ -76,10 +75,26 @@ function setupEventListeners() {
     handleFileDrop(e);
   });
 
-  document.getElementById('analyze-text').addEventListener('click', analyzeManualText);
   document.getElementById('upload-tweets-btn').addEventListener('click', uploadTweets);
-  document.getElementById('delete-tweets-btn').addEventListener('click', deleteTweets);
   document.getElementById('generate-style-btn').addEventListener('click', generateStyleProfile);
+
+  // Tweet source dropdown
+  document.getElementById('tweet-source-select').addEventListener('change', (e) => {
+    chrome.storage.sync.set({ selectedTweetSource: e.target.value });
+  });
+
+  // Style profile dropdown
+  document.getElementById('style-profile-select').addEventListener('change', async (e) => {
+    const profileId = e.target.value;
+    if (profileId) {
+      await chrome.runtime.sendMessage({
+        action: 'setActiveStyleProfile',
+        data: { profileId: parseInt(profileId) }
+      });
+    } else {
+      await chrome.storage.sync.remove('activeStyleProfileId');
+    }
+  });
 }
 
 // Switch between tabs
@@ -222,50 +237,107 @@ async function loadSettings() {
   }
 }
 
-// Load tweet status from Supabase
-async function loadTweetStatus() {
-  const statusContainer = document.getElementById('tweet-status');
-  const deleteBtn = document.getElementById('delete-tweets-btn');
+// Load all user data (usernames, tweet sources, style profiles)
+async function loadUserData() {
+  try {
+    // Get all usernames
+    const usernamesResponse = await chrome.runtime.sendMessage({ action: 'getAllUsernames' });
+    const usernames = usernamesResponse.success ? usernamesResponse.data : [];
 
-  // Hide delete button during loading
-  deleteBtn.style.display = 'none';
+    // Get all style profiles
+    const profilesResponse = await chrome.runtime.sendMessage({ action: 'getAllStyleProfiles', data: {} });
+    const allProfiles = profilesResponse.success ? profilesResponse.data : [];
+
+    // Get stored selections
+    const storage = await chrome.storage.sync.get(['selectedTweetSource', 'activeStyleProfileId']);
+
+    // Populate Tweet Source dropdown
+    const tweetSourceSelect = document.getElementById('tweet-source-select');
+    if (usernames.length === 0) {
+      tweetSourceSelect.innerHTML = '<option value="">No tweets uploaded</option>';
+    } else {
+      tweetSourceSelect.innerHTML = usernames.map(u =>
+        `<option value="${u.username}" ${storage.selectedTweetSource === u.username ? 'selected' : ''}>@${u.username} (${u.tweetCount} tweets)</option>`
+      ).join('');
+
+      // Auto-select first if none selected
+      if (!storage.selectedTweetSource && usernames.length > 0) {
+        chrome.storage.sync.set({ selectedTweetSource: usernames[0].username });
+      }
+    }
+
+    // Populate Style Profile dropdown (grouped by username)
+    const styleProfileSelect = document.getElementById('style-profile-select');
+    if (allProfiles.length === 0) {
+      styleProfileSelect.innerHTML = '<option value="">No style profiles</option>';
+    } else {
+      // Group profiles by user_id
+      const profilesByUser = {};
+      for (const profile of allProfiles) {
+        const userId = profile.user_id || 'default_user';
+        if (!profilesByUser[userId]) profilesByUser[userId] = [];
+        profilesByUser[userId].push(profile);
+      }
+
+      let optionsHtml = '<option value="">No style (use examples only)</option>';
+      for (const [userId, profiles] of Object.entries(profilesByUser)) {
+        optionsHtml += `<optgroup label="@${userId}">`;
+        for (const profile of profiles) {
+          const date = new Date(profile.created_at).toLocaleDateString();
+          const selected = storage.activeStyleProfileId === profile.id ? 'selected' : '';
+          optionsHtml += `<option value="${profile.id}" ${selected}>${profile.tweet_count} tweets · ${date}</option>`;
+        }
+        optionsHtml += '</optgroup>';
+      }
+      styleProfileSelect.innerHTML = optionsHtml;
+    }
+
+    // Populate User Management list
+    const userList = document.getElementById('user-list');
+    if (usernames.length === 0) {
+      userList.innerHTML = '<p class="help-text">No users yet. Upload tweets to get started.</p>';
+    } else {
+      userList.innerHTML = usernames.map(u => `
+        <div class="profile-item" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div class="profile-name">@${u.username}</div>
+            <div class="profile-meta">${u.tweetCount} tweets</div>
+          </div>
+          <button class="btn-danger-small delete-user-btn" data-username="${u.username}">Delete</button>
+        </div>
+      `).join('');
+
+      // Add delete handlers
+      userList.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteUserData(btn.dataset.username));
+      });
+    }
+
+  } catch (error) {
+    console.error('Failed to load user data:', error);
+  }
+}
+
+// Delete all data for a specific user
+async function deleteUserData(username) {
+  if (!confirm(`Delete all tweets and style profiles for @${username}? This cannot be undone.`)) {
+    return;
+  }
 
   try {
-    const response = await chrome.runtime.sendMessage({ action: 'getTweetCount' });
+    const response = await chrome.runtime.sendMessage({
+      action: 'deleteUserData',
+      data: { username }
+    });
 
-    if (response.success && response.data > 0) {
-      statusContainer.innerHTML = `
-        <div class="status-card success">
-          <span class="status-icon">✓</span>
-          <div>
-            <strong>${response.data} tweets</strong> stored with embeddings
-            <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Ready for semantic search</p>
-          </div>
-        </div>
-      `;
-      deleteBtn.style.display = 'block';
+    if (response.success) {
+      showNotification(`Deleted all data for @${username}`, 'success');
+      loadUserData(); // Refresh
     } else {
-      statusContainer.innerHTML = `
-        <div class="status-card empty">
-          <span class="status-icon">○</span>
-          <div>
-            <strong>No tweets uploaded</strong>
-            <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Upload your tweets to enable AI replies</p>
-          </div>
-        </div>
-      `;
+      throw new Error(response.error);
     }
   } catch (error) {
-    console.error('Failed to load tweet status:', error);
-    statusContainer.innerHTML = `
-      <div class="status-card empty">
-        <span class="status-icon">○</span>
-        <div>
-          <strong>No tweets uploaded</strong>
-          <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Upload your tweets to enable AI replies</p>
-        </div>
-      </div>
-    `;
+    showNotification('Failed to delete: ' + error.message, 'error');
   }
 }
 
@@ -412,6 +484,16 @@ async function uploadTweets() {
     return;
   }
 
+  // Get username from input
+  const usernameInput = document.getElementById('upload-username');
+  const username = usernameInput.value.trim().replace('@', ''); // Remove @ if present
+
+  if (!username) {
+    showNotification('Please enter a username', 'error');
+    usernameInput.focus();
+    return;
+  }
+
   const uploadBtn = document.getElementById('upload-tweets-btn');
   const progressContainer = document.getElementById('upload-progress');
   const progressText = progressContainer.querySelector('.progress-text');
@@ -419,21 +501,23 @@ async function uploadTweets() {
   uploadBtn.disabled = true;
   uploadBtn.textContent = 'Processing...';
   progressContainer.hidden = false;
-  progressText.textContent = `Processing ${window.pendingTweets.length} tweets with embeddings...`;
+  progressText.textContent = `Processing ${window.pendingTweets.length} tweets for @${username}...`;
 
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'uploadTweets',
       data: {
-        tweets: window.pendingTweets
+        tweets: window.pendingTweets,
+        userId: username
       }
     });
 
     if (response.success) {
-      showNotification(`Uploaded ${response.data.count} tweets with embeddings`, 'success');
+      showNotification(`Uploaded ${response.data.count} tweets for @${username}`, 'success');
       window.pendingTweets = null;
       document.getElementById('upload-result').hidden = true;
-      loadTweetStatus();
+      usernameInput.value = ''; // Clear input
+      loadUserData(); // Refresh user list and dropdowns
     } else {
       throw new Error(response.error);
     }
@@ -448,154 +532,42 @@ async function uploadTweets() {
   }
 }
 
-// Delete all tweets
-async function deleteTweets() {
-  if (!confirm('Delete all stored tweets? This cannot be undone.')) {
-    return;
-  }
 
-  try {
-    const response = await chrome.runtime.sendMessage({ action: 'deleteTweets' });
-
-    if (response.success) {
-      showNotification('All tweets deleted', 'success');
-      loadTweetStatus();
-    } else {
-      throw new Error(response.error);
-    }
-  } catch (error) {
-    showNotification('Failed to delete tweets: ' + error.message, 'error');
-  }
-}
-
-// Analyze manual text
-async function analyzeManualText() {
-  const text = document.getElementById('manual-text').value.trim();
-
-  if (!text) {
-    showNotification('Please enter some text', 'error');
-    return;
-  }
-
-  const tweets = text.split('\n').filter(line => line.trim().length > 10);
-
-  if (tweets.length === 0) {
-    showNotification('No valid tweets found', 'error');
-    return;
-  }
-
-  window.pendingTweets = tweets;
-  displayUploadResults(tweets);
-}
-
-// Load style profile status
-async function loadStyleProfileStatus() {
-  const statusContainer = document.getElementById('style-profile-status');
-  const generateBtn = document.getElementById('generate-style-btn');
-
-  try {
-    // Get all profiles
-    const response = await chrome.runtime.sendMessage({ action: 'getAllStyleProfiles', data: {} });
-    const storage = await chrome.storage.sync.get(['activeStyleProfileId']);
-    const activeProfileId = storage.activeStyleProfileId;
-
-    if (response && response.success && response.data && response.data.length > 0) {
-      const profiles = response.data;
-      const activeProfile = activeProfileId
-        ? profiles.find(p => p.id === activeProfileId) || profiles[0]
-        : profiles[0];
-
-      const createdDate = new Date(activeProfile.created_at).toLocaleDateString();
-
-      statusContainer.innerHTML = `
-        <div class="status-card success">
-          <span class="status-icon">✓</span>
-          <div>
-            <strong>Style profile active</strong>
-            <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">
-              Based on ${activeProfile.tweet_count} tweets · Created ${createdDate}
-            </p>
-          </div>
-        </div>
-        ${profiles.length > 1 ? `
-          <div style="margin-top: 12px;">
-            <label style="font-size: 11px; color: #6b7280; display: block; margin-bottom: 6px;">SELECT PROFILE</label>
-            <select id="profile-selector" style="width: 100%; padding: 8px 10px; background: #0f0f16; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: #e4e4e7; font-family: 'Geist Mono', monospace; font-size: 12px;">
-              ${profiles.map(p => `
-                <option value="${p.id}" ${p.id === activeProfile.id ? 'selected' : ''}>
-                  ${p.tweet_count} tweets · ${new Date(p.created_at).toLocaleDateString()}
-                </option>
-              `).join('')}
-            </select>
-          </div>
-        ` : ''}
-      `;
-
-      // Add change handler for profile selector
-      const selector = statusContainer.querySelector('#profile-selector');
-      if (selector) {
-        selector.addEventListener('change', async (e) => {
-          const profileId = parseInt(e.target.value);
-          await chrome.runtime.sendMessage({
-            action: 'setActiveStyleProfile',
-            data: { profileId }
-          });
-          showNotification('Style profile switched!', 'success');
-        });
-      }
-
-      generateBtn.textContent = 'Generate New Profile';
-    } else {
-      statusContainer.innerHTML = `
-        <div class="status-card empty">
-          <span class="status-icon">○</span>
-          <div>
-            <strong>No style profile</strong>
-            <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Generate to improve reply quality</p>
-          </div>
-        </div>
-      `;
-    }
-  } catch (error) {
-    console.error('Failed to load style profile status:', error);
-  }
-}
-
-// Generate style profile
+// Generate style profile for selected tweet source
 async function generateStyleProfile() {
   const generateBtn = document.getElementById('generate-style-btn');
-  const statusContainer = document.getElementById('style-profile-status');
+
+  // Get selected tweet source
+  const tweetSourceSelect = document.getElementById('tweet-source-select');
+  const selectedUsername = tweetSourceSelect.value;
+
+  if (!selectedUsername) {
+    showNotification('No tweet source selected. Upload tweets first.', 'error');
+    return;
+  }
 
   generateBtn.disabled = true;
-  generateBtn.textContent = 'Analyzing...';
-
-  statusContainer.innerHTML = `
-    <div class="status-card empty">
-      <span class="status-icon" style="animation: pulse 1s infinite;">◉</span>
-      <div>
-        <strong>Analyzing your writing style...</strong>
-        <p style="font-size: 11px; color: #9ca3af; margin-top: 4px;">This takes ~30 seconds</p>
-      </div>
-    </div>
-  `;
+  generateBtn.textContent = `Analyzing @${selectedUsername}...`;
 
   try {
-    const response = await chrome.runtime.sendMessage({ action: 'analyzeStyleProfile', data: {} });
+    const response = await chrome.runtime.sendMessage({
+      action: 'analyzeStyleProfile',
+      data: { userId: selectedUsername }
+    });
 
     if (!response) {
       throw new Error('No response from service worker. Try reloading the extension.');
     }
 
     if (response.success) {
-      showNotification('Style profile created!', 'success');
-      loadStyleProfileStatus();
+      showNotification(`Style profile created for @${selectedUsername}!`, 'success');
+      loadUserData(); // Refresh dropdowns
     } else {
       throw new Error(response.error || 'Unknown error occurred');
     }
   } catch (error) {
     console.error('Style profile generation failed:', error);
     showNotification('Failed: ' + error.message, 'error');
-    loadStyleProfileStatus();
   } finally {
     generateBtn.disabled = false;
     generateBtn.textContent = 'Generate Style Profile';
