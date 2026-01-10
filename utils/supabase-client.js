@@ -213,17 +213,19 @@ const supabaseClient = {
     return data.length > 0 ? data[0] : null;
   },
 
-  // Get ALL style profiles for user
+  // Get ALL style profiles (optionally filter by user)
   async getAllStyleProfiles(userId = null) {
-    const response = await fetch(
-      `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?user_id=eq.${encodeURIComponent(userId || CONFIG.DEFAULT_USER_ID)}&order=created_at.desc`,
-      {
-        headers: {
-          'apikey': CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
-        }
+    // If userId is provided, filter by it. Otherwise, get ALL profiles.
+    const url = userId
+      ? `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`
+      : `${CONFIG.SUPABASE_URL}/rest/v1/style_profiles?order=created_at.desc`;
+
+    const response = await fetch(url, {
+      headers: {
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
       }
-    );
+    });
 
     if (!response.ok) {
       return [];

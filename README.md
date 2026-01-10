@@ -1,112 +1,93 @@
-# X Reply Extension for Twitter/X
+# X Reply Extension
 
-A Chrome browser extension that generates contextually appropriate Twitter/X replies by analyzing your writing style and tone.
+A Chrome extension that generates AI-powered Twitter/X replies using your past tweets as context. It uses semantic search to find relevant tweets and generates replies that match your writing style.
 
-## Setup Instructions
+## How It Works
+
+1. **Upload your tweets** - Import your tweet history under a username
+2. **Generate embeddings** - OpenAI converts tweets to vector embeddings
+3. **Store in Supabase** - Tweets + embeddings stored in pgvector database
+4. **Semantic search** - When replying, finds your most relevant past tweets
+5. **AI generates reply** - Claude uses your tweets as context to match your style
+
+## Setup
 
 ### 1. Install the Extension
 
-1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked" and select the extension folder
+1. Download/extract the extension folder
+2. Open Chrome → `chrome://extensions/`
+3. Enable **Developer mode** (top right)
+4. Click **Load unpacked** → select the folder
 
-### 2. Get an AI API Key
+### 2. Get API Keys
 
-Choose one provider and get an API key:
+**OpenAI** (for embeddings):
+- Get key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
-**OpenAI (Recommended)**
+**OpenRouter** (for AI replies):
+- Get key from [openrouter.ai/keys](https://openrouter.ai/keys)
 
-- Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-- Create an API key
-- Uses GPT-4o-mini model
+### 3. Configure Extension
 
-**Anthropic Claude**
+1. Click extension icon → Settings tab
+2. Enter your **OpenRouter API Key**
+3. Enter your **OpenAI API Key**
 
-- Go to [console.anthropic.com](https://console.anthropic.com/)
-- Create an API key
-- Uses Claude 3 Haiku model
+## Usage
 
-**Google Gemini**
+### Upload Tweets
 
-- Go to [makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
-- Create an API key
-- Uses Gemini Pro model
+1. Go to **Upload Tweets** tab
+2. Enter a **username** (tweets will be stored under this)
+3. Drag & drop or select your tweet JSON/CSV file
+4. Click **Upload & Process** - this generates embeddings and stores them
 
-### 3. Setup Supabase (Optional)
+### Select Tweet Source
 
-If you want to save your tone profile and reply history:
+1. In **Settings** tab, select which user's tweets to use from the **Tweet Source** dropdown
+2. Optionally select a **Style Profile** for additional style matching
 
-1. Create account at [supabase.com](https://supabase.com/)
-2. Create a new project
-3. Go to Settings → API
-4. Copy your Project URL and anon/public key
-5. In the SQL Editor, run:
+### Generate Style Profile
 
-```sql
-CREATE TABLE tone_profiles (
-  id BIGSERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  profile_data JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+1. Select a user from Tweet Source dropdown
+2. Click **Generate Style Profile** - AI analyzes tweets and creates a writing style guide
 
-CREATE TABLE replies_history (
-  id BIGSERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  original_tweet TEXT NOT NULL,
-  user_reply TEXT NOT NULL,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### 4. Configure the Extension
-
-1. Click the extension icon in Chrome
-2. Go to **Settings** tab
-3. Add your AI API key
-4. Add Supabase URL and key (if using)
-5. Choose your AI provider
-
-### 5. Create Your Writing Profile
-
-1. Go to **Upload** tab
-2. Upload your tweet data as:
-   - JSON file from Twitter export
-   - CSV file with tweets
-   - Plain text (one tweet per line)
-3. Click **Analyze Text**
-4. Save the analyzed profile
-
-## How to Use
+### Generate Replies on Twitter
 
 1. Go to Twitter/X
-2. Click on any tweet to reply
-3. Look for the blue "AI" button next to Reply
-4. Click it to see 3 reply suggestions
-5. Copy any suggestion you like
-6. Paste into the reply box
+2. Click on any tweet
+3. Click the **AI Reply** button (appears near the reply box)
+4. Choose from generated reply suggestions
+5. Click to copy, then paste into reply box
 
-## File Formats Supported
+## File Formats
 
 **JSON:**
-
 ```json
-[{ "text": "Your tweet here" }, { "text": "Another tweet" }]
+["Tweet text here", "Another tweet", "Third tweet"]
+```
+or
+```json
+[{"text": "Tweet here"}, {"text": "Another tweet"}]
 ```
 
 **CSV:**
-
 ```csv
-username,date,tweet_text
-user,2024-01-01,"Your tweet here"
+tweet_text
+"Your tweet here"
+"Another tweet"
 ```
 
-**Text:**
+## Multi-User Support
 
-```
-Your tweet here
-Another tweet here
-```
+- Upload tweets for different users (e.g., @user1, @user2)
+- Switch between users via Tweet Source dropdown
+- Each user can have their own style profiles
+- Delete user data from User Management section
 
-That's it! The extension will learn your writing style and generate replies that match your tone.
+## Tech Stack
+
+- **Frontend**: Chrome Extension (Manifest V3)
+- **Database**: Supabase (PostgreSQL + pgvector)
+- **Embeddings**: OpenAI text-embedding-3-small
+- **AI Replies**: OpenRouter (Claude claude-3-5-haiku-20241022)
