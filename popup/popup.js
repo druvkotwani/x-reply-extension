@@ -256,13 +256,18 @@ async function loadUserData() {
     if (usernames.length === 0) {
       tweetSourceSelect.innerHTML = '<option value="">No tweets uploaded</option>';
     } else {
+      // Check if stored selection is still valid
+      const validUsernames = usernames.map(u => u.username);
+      const storedIsValid = storage.selectedTweetSource && validUsernames.includes(storage.selectedTweetSource);
+      const selectedUsername = storedIsValid ? storage.selectedTweetSource : usernames[0].username;
+
       tweetSourceSelect.innerHTML = usernames.map(u =>
-        `<option value="${u.username}" ${storage.selectedTweetSource === u.username ? 'selected' : ''}>@${u.username} (${u.tweetCount} tweets)</option>`
+        `<option value="${u.username}" ${selectedUsername === u.username ? 'selected' : ''}>@${u.username} (${u.tweetCount} tweets)</option>`
       ).join('');
 
-      // Auto-select first if none selected
-      if (!storage.selectedTweetSource && usernames.length > 0) {
-        chrome.storage.sync.set({ selectedTweetSource: usernames[0].username });
+      // Save selection if it changed or wasn't set
+      if (!storedIsValid) {
+        chrome.storage.sync.set({ selectedTweetSource: selectedUsername });
       }
     }
 

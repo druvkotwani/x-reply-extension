@@ -236,14 +236,13 @@ const supabaseClient = {
 
   // Get all unique usernames (user_ids) with tweet counts
   async getAllUsernames() {
-    // Fetch all tweets with no limit (Supabase defaults to 1000)
+    // First get distinct user_ids
     const response = await fetch(
       `${CONFIG.SUPABASE_URL}/rest/v1/tweets?select=user_id`,
       {
         headers: {
           'apikey': CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
-          'Range': '0-99999'
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
         }
       }
     );
@@ -254,18 +253,32 @@ const supabaseClient = {
 
     const tweets = await response.json();
 
-    // Count tweets per user
-    const userCounts = {};
-    for (const tweet of tweets) {
-      const userId = tweet.user_id || 'default_user';
-      userCounts[userId] = (userCounts[userId] || 0) + 1;
+    // Get unique user_ids
+    const uniqueUsers = [...new Set(tweets.map(t => t.user_id || 'default_user'))];
+
+    // Get exact count for each user using Prefer: count=exact
+    const userCounts = [];
+    for (const userId of uniqueUsers) {
+      const countResponse = await fetch(
+        `${CONFIG.SUPABASE_URL}/rest/v1/tweets?user_id=eq.${encodeURIComponent(userId)}&select=id`,
+        {
+          headers: {
+            'apikey': CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+            'Prefer': 'count=exact',
+            'Range': '0-0'
+          }
+        }
+      );
+
+      if (countResponse.ok) {
+        const contentRange = countResponse.headers.get('content-range');
+        const count = contentRange ? parseInt(contentRange.split('/')[1]) : 0;
+        userCounts.push({ username: userId, tweetCount: count });
+      }
     }
 
-    // Convert to array format
-    return Object.entries(userCounts).map(([username, count]) => ({
-      username,
-      tweetCount: count
-    })).sort((a, b) => b.tweetCount - a.tweetCount);
+    return userCounts.sort((a, b) => b.tweetCount - a.tweetCount);
   },
 
   // Delete tweets for a specific username
