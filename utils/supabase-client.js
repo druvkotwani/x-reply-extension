@@ -236,12 +236,14 @@ const supabaseClient = {
 
   // Get all unique usernames (user_ids) with tweet counts
   async getAllUsernames() {
+    // Fetch all tweets with no limit (Supabase defaults to 1000)
     const response = await fetch(
       `${CONFIG.SUPABASE_URL}/rest/v1/tweets?select=user_id`,
       {
         headers: {
           'apikey': CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+          'Range': '0-99999'
         }
       }
     );
