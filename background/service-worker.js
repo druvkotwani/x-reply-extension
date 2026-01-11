@@ -87,6 +87,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
+
+    case 'generatePosts':
+      generateAIPosts(request.data)
+        .then(response => sendResponse({ success: true, data: response }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
   }
 });
 
@@ -352,6 +358,226 @@ async function generateAIReplies(data) {
   }
 }
 
+// Generate AI posts from user idea
+async function generateAIPosts(data) {
+  const { userIdea } = data;
+
+  if (!userIdea || userIdea.trim().length < 3) {
+    throw new Error('Please enter more text in the compose box (at least a few words about your idea).');
+  }
+
+  try {
+    // Get selected tweet source and style profile from storage
+    const storage = await chrome.storage.sync.get(['selectedTweetSource', 'activeStyleProfileId']);
+    const selectedTweetSource = storage.selectedTweetSource;
+    const activeProfileId = storage.activeStyleProfileId;
+
+    // Check if user has tweets for the selected source
+    if (!selectedTweetSource) {
+      throw new Error('No tweet source selected. Please select a user in extension settings.');
+    }
+
+    const tweetCount = await supabaseClient.getTweetCount(selectedTweetSource);
+    if (tweetCount === 0) {
+      throw new Error(`No tweets found for @${selectedTweetSource}. Please upload tweets first.`);
+    }
+
+    // 1. Get style profile (if exists)
+    const styleProfileData = activeProfileId
+      ? await supabaseClient.getStyleProfile(null, activeProfileId)
+      : null;
+    const styleProfile = styleProfileData?.profile;
+
+    // 2. Generate embedding for the user's idea
+    const queryEmbedding = await openaiEmbeddings.getEmbedding(userIdea);
+
+    // 3. Semantic search for similar tweets (for topic/style reference)
+    const numTweets = styleProfile ? 15 : 30;
+    const similarTweets = await supabaseClient.searchSimilarTweets(queryEmbedding, numTweets, selectedTweetSource);
+
+    if (!similarTweets || similarTweets.length === 0) {
+      throw new Error(`Could not find relevant tweets for @${selectedTweetSource}.`);
+    }
+
+    // 4. Generate posts using Claude
+    const posts = await callOpenRouterForPosts(
+      userIdea,
+      similarTweets.map(t => t.content),
+      styleProfile
+    );
+
+    return posts;
+
+  } catch (error) {
+    console.error('AI post generation failed:', error);
+    throw error;
+  }
+}
+
+// Call OpenRouter API (Claude) for post generation
+async function callOpenRouterForPosts(userIdea, tweetExamples, styleProfile) {
+  let apiKey = CONFIG.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    const result = await chrome.storage.sync.get(['openrouterApiKey']);
+    apiKey = result.openrouterApiKey;
+  }
+
+  if (!apiKey) {
+    throw new Error('OpenRouter API key not configured.');
+  }
+
+  // Build system prompt
+  let systemPrompt;
+
+  if (styleProfile) {
+    systemPrompt = `You write Twitter posts in this person's style. Here's their writing DNA:
+
+TONE: ${styleProfile.tone?.primary || 'direct'}, ${styleProfile.tone?.secondary || ''} (${styleProfile.tone?.formality || 'casual'})
+
+SENTENCE STYLE: ${styleProfile.sentence_structure?.style || 'varies'}
+- Length: ${styleProfile.sentence_structure?.avg_length || 'medium'}
+- Uses fragments: ${styleProfile.sentence_structure?.fragments ? 'yes' : 'no'}
+
+VOCABULARY:
+- Common words: ${styleProfile.vocabulary?.common_words?.join(', ') || 'none identified'}
+- Slang: ${styleProfile.vocabulary?.slang?.join(', ') || 'none'}
+- Technical level: ${styleProfile.vocabulary?.technical_level || 'medium'}
+
+PUNCTUATION:
+- Capitalization: ${styleProfile.punctuation?.capitalization || 'normal'}
+
+EMOJIS: ${styleProfile.emoji_usage?.frequency || 'rare'}${styleProfile.emoji_usage?.common_emojis?.length > 0 ? ` (uses: ${styleProfile.emoji_usage.common_emojis.join(' ')})` : ''}
+
+SIGNATURE PHRASES (use sparingly): ${styleProfile.unique_phrases?.join(', ') || 'none'}
+
+KEY RULES:
+${styleProfile.writing_rules?.slice(0, 8).map(r => `- ${r}`).join('\n') || '- Follow the patterns above'}
+
+IMPORTANT:
+- Create ORIGINAL posts that match this person's voice
+- Do NOT copy phrases from examples
+- Be authentic to their style while being creative`;
+  } else {
+    systemPrompt = `You are an expert at mimicking writing styles on Twitter/X. Study the example tweets carefully and generate posts that sound exactly like the person wrote them.`;
+  }
+
+  const userPrompt = `Reference tweets for tone/style (don't copy these):
+${tweetExamples.slice(0, 15).map((t, i) => `${i + 1}. "${t}"`).join('\n')}
+
+---
+
+USER'S ROUGH IDEA/TOPIC:
+"${userIdea}"
+
+STEP 1 - DETECT THE TONE:
+First, analyze the user's input above. What is the emotional tone/vibe?
+- Is it thoughtful/reflective? ("wondering", "thinking about", questions)
+- Is it excited/hyped? (exclamation, enthusiasm)
+- Is it frustrated/annoyed? (complaints, negativity)
+- Is it casual/observational? (just sharing something)
+- Is it provocative/spicy? (hot takes, controversial)
+
+STEP 2 - MATCH THAT TONE AND LENGTH:
+Generate 3 DIFFERENT tweet variations that PRESERVE the detected tone.
+
+CRITICAL - LENGTH MATCHING:
+- Count the approximate length of the user's input (sentences, lines)
+- ALL outputs must be SIMILAR LENGTH to the input
+- If input is 2-3 sentences, output should be 2-3 sentences
+- Do NOT add extra elaboration, confessions, or filler
+- Do NOT expand a concise input into a long thread
+
+Each variation should:
+- Keep the SAME emotional tone as the user's input
+- Match the LENGTH of the user's input
+- Express the core idea in this person's voice
+- Have a slightly different angle or wording
+- Feel natural, not padded
+
+Variation approaches (all matching tone AND length):
+1. Polished - cleanest wording, same length
+2. Reframed - different angle, same length
+3. Casual - more conversational, same length
+
+Return JSON only:
+{
+  "detected_tone": "brief description",
+  "posts": [
+    {"label": "Polished", "text": "..."},
+    {"label": "Reframed", "text": "..."},
+    {"label": "Casual", "text": "..."}
+  ]
+}`;
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'chrome-extension://x-reply-extension',
+      'X-Title': 'X Reply Extension'
+    },
+    body: JSON.stringify({
+      model: CONFIG.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.85,
+      max_tokens: 800
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'OpenRouter API call failed');
+  }
+
+  const data = await response.json();
+  return parsePostResponse(data.choices[0].message.content);
+}
+
+// Parse the post response
+function parsePostResponse(content) {
+  const trimmed = content.trim();
+  let jsonContent = trimmed;
+
+  // Remove markdown code blocks if present
+  if (trimmed.includes('```json')) {
+    const match = trimmed.match(/```json\s*([\s\S]*?)\s*```/);
+    if (match) jsonContent = match[1];
+  } else if (trimmed.includes('```')) {
+    const match = trimmed.match(/```\s*([\s\S]*?)\s*```/);
+    if (match) jsonContent = match[1];
+  }
+
+  try {
+    const parsed = JSON.parse(jsonContent.trim());
+
+    if (parsed.posts && Array.isArray(parsed.posts)) {
+      // Include detected_tone if present
+      const result = parsed.posts;
+      if (parsed.detected_tone) {
+        result.detected_tone = parsed.detected_tone;
+      }
+      return result;
+    }
+
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse post response:', content);
+  }
+
+  // Fallback
+  return [
+    { label: 'Direct', text: 'Could not generate posts. Please try again.' },
+    { label: 'Alternative', text: 'Try entering a more specific idea.' },
+    { label: 'Suggestion', text: 'Make sure your API keys are configured.' }
+  ];
+}
+
 // Call OpenRouter API (Claude) for reply generation
 async function callOpenRouter(originalTweet, tweetExamples) {
   // Get API key from storage or config
@@ -532,19 +758,20 @@ Generate 5 DIFFERENT reply options. Each must:
 - Match the overall tone/vibe (not exact phrases)
 ${thread && thread.length > 1 ? '- Be contextually aware of the FULL conversation thread\n- Can reference earlier points in the thread' : ''}
 
-LENGTH IS CONTEXTUAL - decide based on the tweet:
-- Simple tweet = short reply (1-3 sentences)
-- Complex topic = can be longer if needed
-- Dumb question = keep it short, just the question
-- Ragebait = punchy, not essays
-- Don't make everything long. Short replies often hit harder.
+CRITICAL - LENGTH MATCHING:
+- Count the length of the tweet you're replying to
+- Your replies should be SIMILAR LENGTH to the original tweet
+- If they wrote 1-2 sentences, reply with 1-2 sentences
+- If they wrote a longer thread-style post, you can match that
+- Do NOT expand a short tweet into a long essay reply
+- Short punchy replies usually hit harder than essays
 
 Reply types needed:
 1. Agreeing/adding insight
 2. Challenging/contrarian take
-3. Dumb question (short, seemingly stupid but thought-provoking question)
-4. Thoughtful perspective (can be longer if topic warrants it)
-5. Ragebait (punchy controversial hot take, not an essay)
+3. Dumb question (short, thought-provoking question)
+4. Thoughtful perspective
+5. Ragebait (punchy hot take)
 
 Return JSON only:
 {
@@ -666,9 +893,23 @@ async function generateCustomReply(data) {
 
     const userPrompt = `Tweet to reply to: "${originalTweet}"
 
-User's instruction: "${customPrompt}"
+User wants to say something like: "${customPrompt}"
 
-Generate a single reply that follows the instruction${contextPrompt ? ' and matches the writing style from examples' : ''}.
+STEP 1 - DETECT THE INTENT:
+What is the user trying to do with their reply?
+- Giving advice/suggestion? ("you should", "try this", "a better approach")
+- Sharing their own experience? ("I've been", "I found that")
+- Asking a question? ("how do you", "what if")
+- Agreeing/validating? ("exactly", "this is so true")
+- Disagreeing/pushing back? ("but", "actually", "not sure about")
+- Adding context/info? (sharing facts, expanding on topic)
+
+STEP 2 - GENERATE THE REPLY:
+Turn the user's rough idea into a polished tweet reply that:
+- Preserves their EXACT intent (if giving advice, reply gives advice)
+- Matches their perspective (don't flip who's giving vs receiving advice)
+- Stays true to what they wanted to say
+- Is similar length to their input${contextPrompt ? '\n- Matches the writing style from examples' : ''}
 
 Return ONLY the reply text, nothing else.`;
 

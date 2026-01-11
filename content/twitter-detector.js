@@ -27,7 +27,298 @@ if (document.readyState === 'loading') {
 }
 
 // Run periodically to catch dynamic content
-setInterval(addAIReplyButtons, 2000);
+setInterval(() => {
+  addAIReplyButtons();
+  detectComposeModals();
+}, 2000);
+
+// Detect compose modals and add AI Post button
+function detectComposeModals() {
+  // Check if extension context is still valid
+  if (!chrome.runtime || !chrome.runtime.id) {
+    return;
+  }
+
+  // Find compose dialogs (modal with Post button)
+  const composeDialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+
+  composeDialogs.forEach((dialog) => {
+    // Verify it's a compose modal by checking for Post button
+    const postButton = dialog.querySelector('[data-testid="tweetButton"]');
+    if (!postButton) return;
+
+    // Skip if already processed
+    if (dialog.querySelector('.ai-post-button')) return;
+
+    // Skip reply modals (button text says "Reply")
+    const buttonText = postButton.textContent.trim().toLowerCase();
+    if (buttonText === 'reply') return;
+
+    addAIPostButton(postButton, dialog);
+  });
+}
+
+// Add AI Post button to compose modal
+function addAIPostButton(postButton, dialog) {
+  // Check if extension context is still valid
+  if (!chrome.runtime || !chrome.runtime.id) {
+    console.log('Extension context invalidated, skipping button injection');
+    return;
+  }
+
+  // Create AI post generator button
+  const aiButton = document.createElement('button');
+  aiButton.className = 'ai-post-button';
+  aiButton.type = 'button';
+
+  // Use the extension icon
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon16.png');
+  aiButton.innerHTML = `
+    <img src="${iconUrl}" width="16" height="16" alt="AI Post">
+  `;
+
+  // Terminal dark theme styling (same as reply button)
+  aiButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 9999;
+    position: relative;
+    flex-shrink: 0;
+  `;
+
+  // Hover effects - shiny gradient
+  aiButton.addEventListener('mouseenter', () => {
+    aiButton.style.background = 'linear-gradient(135deg, #3a3a4a 0%, #2a2a3a 50%, #4a4a5a 100%)';
+    aiButton.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+    aiButton.style.boxShadow = '0 0 12px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+  });
+
+  aiButton.addEventListener('mouseleave', () => {
+    aiButton.style.background = '#1a1a24';
+    aiButton.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    aiButton.style.boxShadow = 'none';
+  });
+
+  // Click handler
+  aiButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showAIPostPopup(dialog);
+  });
+
+  // Insert BEFORE the Post button (to its left)
+  const postButtonContainer = postButton.parentElement;
+  if (postButtonContainer) {
+    postButtonContainer.style.display = 'flex';
+    postButtonContainer.style.alignItems = 'center';
+    postButtonContainer.insertBefore(aiButton, postButton);
+  }
+
+  console.log('AI Post button added to compose modal');
+}
+
+// Extract text from compose box (DraftJS)
+function extractComposeText(dialog) {
+  // Method 1: Try data-testid textarea
+  const textarea = dialog.querySelector('[data-testid="tweetTextarea_0"]');
+  if (textarea) {
+    // DraftJS stores text in nested spans - get ALL of them (mentions are separate elements)
+    const textElements = textarea.querySelectorAll('[data-text="true"]');
+    if (textElements.length > 0) {
+      const fullText = Array.from(textElements).map(el => el.textContent).join('');
+      if (fullText.trim()) {
+        return fullText.trim();
+      }
+    }
+    // Fallback: get all text content from contenteditable
+    const contentEditable = textarea.closest('[contenteditable="true"]');
+    if (contentEditable && contentEditable.textContent.trim()) {
+      return contentEditable.textContent.trim();
+    }
+    // Final fallback: just get textarea content
+    if (textarea.textContent.trim()) {
+      return textarea.textContent.trim();
+    }
+  }
+
+  // Method 2: Find contenteditable directly within the dialog
+  const contentEditable = dialog.querySelector('[contenteditable="true"]');
+  if (contentEditable && contentEditable.textContent.trim()) {
+    return contentEditable.textContent.trim();
+  }
+
+  return '';
+}
+
+// Show AI Post popup
+function showAIPostPopup(dialog) {
+  // Check if extension context is still valid
+  if (!chrome.runtime || !chrome.runtime.id) {
+    alert('Extension was updated. Please refresh the page.');
+    return;
+  }
+
+  // Inject Geist Mono font if not already present
+  if (!document.querySelector('link[href*="Geist+Mono"]')) {
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&display=swap';
+    document.head.appendChild(fontLink);
+  }
+
+  // Remove any existing popup
+  const existingPopup = document.querySelector('.ai-post-popup');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+
+  // Extract text from compose box
+  const composeText = extractComposeText(dialog);
+
+  // Create popup
+  const popup = document.createElement('div');
+  popup.className = 'ai-post-popup ai-reply-popup'; // Reuse existing popup styles
+  popup.innerHTML = `
+    <div class="ai-popup-overlay"></div>
+    <div class="ai-popup-content">
+      <div class="ai-popup-header">
+        <h3>AI Post Generator</h3>
+        <button class="ai-popup-close">&times;</button>
+      </div>
+      <div class="ai-popup-body">
+        <div class="compose-context">
+          <strong>Your Idea</strong>
+          <p>${composeText || 'No text entered yet'}</p>
+        </div>
+        ${composeText ? `
+          <div class="ai-suggestions">
+            <h4>Generated Posts</h4>
+            <div class="ai-loading">
+              <div class="ai-loading-spinner"></div>
+              <span class="ai-loading-text">Generating posts...</span>
+            </div>
+          </div>
+        ` : `
+          <div class="empty-state">
+            <p style="margin-bottom: 12px; color: #9ca3af;">Enter your idea or rough thoughts in the compose box, then click the AI button.</p>
+            <p style="font-size: 11px; color: #6b7280;">Example: "something about how AI is changing software development"</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  // Close popup handlers
+  popup.querySelector('.ai-popup-close').addEventListener('click', () => popup.remove());
+  popup.querySelector('.ai-popup-overlay').addEventListener('click', () => popup.remove());
+
+  // Close on Escape key
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      popup.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  // Generate posts if there's text
+  if (composeText) {
+    generatePostSuggestions(composeText, popup);
+  }
+}
+
+// Generate AI post suggestions
+async function generatePostSuggestions(userIdea, popup) {
+  const suggestionsContainer = popup.querySelector('.ai-suggestions');
+
+  try {
+    // Send to service worker
+    const response = await chrome.runtime.sendMessage({
+      action: 'generatePosts',
+      data: {
+        userIdea: userIdea
+      }
+    });
+
+    if (response.success) {
+      displayPostSuggestions(response.data, popup);
+    } else {
+      throw new Error(response.error);
+    }
+
+  } catch (error) {
+    console.error('Failed to generate posts:', error);
+
+    const errorMessage = error.message.includes('No tweet')
+      ? 'Upload your tweets first in the extension settings.'
+      : error.message.includes('API key')
+        ? 'Add your API key in the extension settings.'
+        : error.message;
+
+    suggestionsContainer.innerHTML = `
+      <h4>Generated Posts</h4>
+      <p style="color: #ef4444; font-size: 12px;">${errorMessage}</p>
+      <p style="font-size: 11px; color: #6b7280; margin-top: 8px;">
+        Click the extension icon to configure.
+      </p>
+    `;
+  }
+}
+
+// Display post suggestions in the popup
+function displayPostSuggestions(posts, popup) {
+  const suggestionsContainer = popup.querySelector('.ai-suggestions');
+
+  // Show detected tone if available
+  const detectedTone = posts.detected_tone;
+  suggestionsContainer.innerHTML = `
+    <h4>Generated Posts</h4>
+    ${detectedTone ? `<div class="detected-tone">Detected tone: <span>${detectedTone}</span></div>` : ''}
+  `;
+
+  posts.forEach((post, index) => {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'suggestion-item';
+
+    const label = post.label || `Version ${index + 1}`;
+    const text = post.text || post;
+
+    postDiv.innerHTML = `
+      <div class="suggestion-label">Version ${index + 1} (${label}):</div>
+      <p class="suggestion-text">${text}</p>
+      <button class="copy-suggestion" data-suggestion="${text.replace(/"/g, '&quot;')}">Copy</button>
+    `;
+    suggestionsContainer.appendChild(postDiv);
+  });
+
+  // Add copy handlers
+  popup.querySelectorAll('.copy-suggestion').forEach(button => {
+    button.addEventListener('click', async (e) => {
+      const suggestion = e.target.dataset.suggestion;
+      try {
+        await navigator.clipboard.writeText(suggestion);
+        e.target.textContent = 'Copied!';
+        setTimeout(() => {
+          e.target.textContent = 'Copy';
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to copy:', error);
+      }
+    });
+  });
+}
 
 function addAIReplyButtons() {
   // Check if extension context is still valid

@@ -382,3 +382,60 @@
   font-family: 'Geist Mono', monospace;
   line-height: 1.5;
 }
+
+/* AI Post Generator Specific Styles */
+.ai-post-popup .compose-context {
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #60a5fa; /* Blue accent for posts */
+}
+
+.ai-post-popup .compose-context strong {
+  color: #60a5fa;
+  font-weight: 500;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-post-popup .compose-context p {
+  margin: 8px 0 0;
+  color: #9ca3af;
+  font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.6;
+}
+
+.ai-post-popup .empty-state {
+  background: #1a1a24;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* Detected tone indicator */
+.ai-post-popup .detected-tone {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Geist Mono', monospace;
+  color: #9ca3af;
+}
+
+.ai-post-popup .detected-tone span {
+  color: #60a5fa;
+  font-weight: 500;
+}
+
+/* Button animation for post button */
+.ai-post-button {
+  animation: fadeIn 0.2s ease-out;
+}
